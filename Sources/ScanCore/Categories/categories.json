@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "categories": [
+    {
+      "id": "python-venvs",
+      "number": 5,
+      "title": "Python virtual envs",
+      "summary": "Virtual environments inside Python projects you haven't touched lately.",
+      "comesBack": { "kind": "yes", "howTo": "python3 -m venv .venv, then pip install -r requirements.txt" },
+      "rule": "Project inactive",
+      "preselected": true,
+      "collector": {
+        "type": "projectLeftovers",
+        "leftovers": [
+          { "names": [".venv", "venv", "env"], "containsFile": "pyvenv.cfg" }
+        ]
+      }
+    },
+    {
+      "id": "node-leftovers",
+      "number": 6,
+      "title": "Node / JS build leftovers",
+      "summary": "Installed packages and build output in JavaScript projects you haven't touched lately.",
+      "comesBack": { "kind": "yes", "howTo": "npm install (or pnpm/yarn/bun install), then rebuild" },
+      "rule": "Project inactive",
+      "preselected": true,
+      "collector": {
+        "type": "projectLeftovers",
+        "leftovers": [
+          { "names": ["node_modules"], "siblingFile": "package.json" },
+          { "names": [".next", ".turbo", ".parcel-cache"], "siblingFile": "package.json" },
+          { "names": ["dist", "build"], "siblingFile": "package.json", "confirmUntracked": true }
+        ]
+      }
+    },
+    {
+      "id": "build-outputs",
+      "number": 7,
+      "title": "Other build outputs",
+      "summary": "Rust, Swift and Gradle build folders in projects you haven't touched lately.",
+      "comesBack": { "kind": "yes", "howTo": "rebuild the project" },
+      "rule": "Project inactive",
+      "preselected": true,
+      "enabled": false,
+      "collector": {
+        "type": "projectLeftovers",
+        "leftovers": [
+          { "names": ["target"], "siblingFile": "Cargo.toml" },
+          { "names": [".build"], "siblingFile": "Package.swift" },
+          { "names": [".gradle"] },
+          { "names": ["build"], "siblingFile": "build.gradle", "confirmUntracked": true },
+          { "names": ["build"], "siblingFile": "build.gradle.kts", "confirmUntracked": true }
+        ]
+      }
+    },
+    {
+      "id": "package-caches",
+      "number": 8,
+      "title": "Package manager caches",
+      "summary": "Download caches kept by package managers. They refill on the next install.",
+      "comesBack": { "kind": "yes", "howTo": "refilled on the next install" },
+      "rule": "Always eligible",
+      "preselected": true,
+      "collector": {
+        "type": "knownPaths",
+        "paths": [
+          { "label": "npm", "path": "~/.npm/_cacache" },
+          { "label": "Yarn", "path": "~/Library/Caches/Yarn" },
+          { "label": "Yarn", "path": "~/.yarn/berry/cache" },
+          { "label": "Yarn", "path": "~/.cache/yarn" },
+          { "label": "Bun", "path": "~/.bun/install/cache" },
+          { "label": "pip", "path": "~/Library/Caches/pip" },
+          { "label": "pip", "path": "~/.cache/pip" },
+          { "label": "Homebrew", "path": "~/Library/Caches/Homebrew" },
+          { "label": "CocoaPods", "path": "~/Library/Caches/CocoaPods" },
+          {
+            "label": "Go modules",
+            "path": "~/go/pkg/mod",
+            "comesBack": { "kind": "yes", "howTo": "go mod download" },
+            "clearCommand": "go clean -modcache"
+          },
+          {
+            "label": "pnpm store",
+            "path": "~/Library/pnpm/store",
+            "clearCommand": "pnpm store prune",
+            "estimated": true
+          },
+          {
+            "label": "pnpm store",
+            "path": "~/.local/share/pnpm/store",
+            "clearCommand": "pnpm store prune",
+            "estimated": true
+          },
+          {
+            "label": "pnpm store",
+            "path": "~/.pnpm-store",
+            "clearCommand": "pnpm store prune",
+            "estimated": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "temp-files",
+      "number": 12,
+      "title": "Temp files",
+      "summary": "Temporary files and app caches nothing has written to in days.",
+      "comesBack": { "kind": "yes", "howTo": "apps recreate them when needed" },
+      "rule": "Older than 3 days and not open",
+      "preselected": true,
+      "collector": {
+        "type": "folderContents",
+        "folders": [
+          { "path": "$TMPDIR" },
+          { "path": "~/Library/Caches", "optIn": "libraryCaches" }
+        ],
+        "olderThanDays": 3,
+        "skipNamePrefixes": ["com.apple."]
+      }
+    },
+    {
+      "id": "old-installers",
+      "number": 14,
+      "title": "Old installers",
+      "summary": "Disk images, packages and zip downloads sitting in Downloads.",
+      "comesBack": { "kind": "redownload" },
+      "rule": "Older than 30 days",
+      "preselected": true,
+      "collector": {
+        "type": "folderContents",
+        "folders": [{ "path": "~/Downloads" }],
+        "olderThanDays": 30,
+        "extensions": ["dmg", "pkg", "zip"],
+        "filesOnly": true,
+        "requireDownloadedFor": ["zip"]
+      }
+    }
+  ]
+}
