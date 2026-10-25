@@ -12,17 +12,18 @@ import Foundation
 /// file can be opened a moment after the snapshot. It also includes each
 /// process's working folder, so a terminal sitting in a folder counts.
 public struct OpenFiles: Sendable {
-    /// Sorted, so "anything open inside this folder?" is a binary search.
-    private let paths: [String]
+    private let paths: SortedPaths
     /// False when `lsof` couldn't run; callers should say so in warnings.
     public let isAvailable: Bool
 
     public init(paths: [String], isAvailable: Bool = true) {
-        self.paths = Array(Set(paths)).sorted()
+        self.paths = SortedPaths(paths)
         self.isAvailable = isAvailable
     }
 
     public static let unavailable = OpenFiles(paths: [], isAvailable: false)
+
+    public var count: Int { paths.count }
 
     /// Takes a snapshot of the current user's open files.
     public static func snapshot(timeout: TimeInterval = 20) async -> OpenFiles {
@@ -58,19 +59,6 @@ public struct OpenFiles: Sendable {
 
     /// The first open path that is `path` or lives inside it.
     public func firstOpen(inside path: String) -> String? {
-        var low = 0
-        var high = paths.count
-        while low < high {
-            let middle = (low + high) / 2
-            if paths[middle] < path { low = middle + 1 } else { high = middle }
-        }
-        // "/a/b" sorts before "/a/b/c" and "/a/b-x" sorts between them, so
-        // scan forward while entries still share the prefix.
-        var index = low
-        while index < paths.count, paths[index].hasPrefix(path) {
-            if Paths.isSameOrDescendant(paths[index], of: path) { return paths[index] }
-            index += 1
-        }
-        return nil
+        paths.first(inside: path)
     }
 }

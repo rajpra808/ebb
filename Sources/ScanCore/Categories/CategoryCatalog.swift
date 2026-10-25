@@ -78,6 +78,9 @@ public struct FolderContentsSpec: Codable, Equatable, Sendable {
     /// Extensions that only count when the file was downloaded from the web
     /// (macOS quarantine attribute), so your own zip archives are left alone.
     public let requireDownloadedFor: [String]?
+    /// The reason shown for each item; `{age}` becomes e.g. "41 days".
+    /// Defaults to "Untouched for {age}".
+    public let reason: String?
 }
 
 /// A category from `categories.json`: what the user sees plus how to find it.

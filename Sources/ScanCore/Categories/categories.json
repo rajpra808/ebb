@@ -132,7 +132,8 @@
         "olderThanDays": 30,
         "extensions": ["dmg", "pkg", "zip"],
         "filesOnly": true,
-        "requireDownloadedFor": ["zip"]
+        "requireDownloadedFor": ["zip"],
+        "reason": "Downloaded {age} ago"
       }
     }
   ]

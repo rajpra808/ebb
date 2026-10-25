@@ -76,3 +76,33 @@ struct PathSet: Sendable {
         }
     }
 }
+
+/// A sorted list of paths that answers "is any of them at or inside this
+/// folder?" with a binary search.
+struct SortedPaths: Sendable {
+    private let paths: [String]
+
+    init<S: Sequence>(_ paths: S) where S.Element == String {
+        self.paths = Array(Set(paths)).sorted()
+    }
+
+    var count: Int { paths.count }
+
+    /// The first member that is `folder` or lives inside it.
+    func first(inside folder: String) -> String? {
+        var low = 0
+        var high = paths.count
+        while low < high {
+            let middle = (low + high) / 2
+            if paths[middle] < folder { low = middle + 1 } else { high = middle }
+        }
+        // "/a/b-x" sorts between "/a/b" and "/a/b/c", so keep scanning while
+        // entries share the prefix.
+        var index = low
+        while index < paths.count, paths[index].hasPrefix(folder) {
+            if Paths.isSameOrDescendant(paths[index], of: folder) { return paths[index] }
+            index += 1
+        }
+        return nil
+    }
+}
