@@ -6,9 +6,11 @@ public struct Ebb: AsyncParsableCommand {
     public static let configuration = CommandConfiguration(
         commandName: "ebb",
         abstract: "Finds disk space that is safe to clear, and leaves your active work alone.",
-        discussion: "Ebb is read-only for now: no command moves or deletes anything.",
-        version: "0.1.0",
-        subcommands: [Scan.self, Active.self, RuleCommand.self],
+        discussion: """
+        Only `ebb clean` changes anything, and it only moves items to the Trash after you         confirm. `ebb undo` puts them back.
+        """,
+        version: "0.2.0",
+        subcommands: [Scan.self, Clean.self, Active.self, History.self, Undo.self, RuleCommand.self],
         defaultSubcommand: Scan.self
     )
 

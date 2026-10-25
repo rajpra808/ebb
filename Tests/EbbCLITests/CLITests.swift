@@ -102,7 +102,8 @@ struct ReportTests {
                   source: String? = nil, preselected: Bool = true, estimated: Bool = false) -> Item {
             Item(path: path, categoryID: category, allocatedBytes: bytes, sharedBytes: 0, isEstimated: estimated,
                  fileCount: 10, lastUsed: nil, comesBack: .yes(howTo: "npm i"), reason: "Project inactive 41 days",
-                 preselected: preselected, projectPath: project, source: source, ruleID: nil, clearCommand: nil)
+                 preselected: preselected, projectPath: project, source: source, ruleID: nil, clearCommand: nil,
+                 packageManaged: false)
         }
         let items = [
             item("/Users/me/a/node_modules", "node-leftovers", 2_000_000_000, project: "/Users/me/a"),
@@ -223,5 +224,42 @@ struct ProgressLineTests {
     func quietFlag() throws {
         let scan = try #require(try Ebb.parseAsRoot(["scan", "-q"]) as? Scan)
         #expect(scan.flags.quiet)
+    }
+}
+
+@Suite("CLI clean")
+struct CleanCommandTests {
+    @Test("clean picks pre-selected items by default and whole categories with --select")
+    func selection() throws {
+        let result = ReportTests.sampleResult()
+        let preselected = Clean.selection(from: result, categories: nil)
+        #expect(preselected.allSatisfy { $0.preselected })
+        #expect(!preselected.contains { $0.categoryID == "custom-rules" })
+
+        let rules = Clean.selection(from: result, categories: ["custom-rules"])
+        #expect(rules.map(\.path) == ["/Users/me/Movies/x.mov"])
+    }
+
+    @Test("clean flags parse and unknown categories are rejected")
+    func flags() throws {
+        let clean = try #require(try Ebb.parseAsRoot(["clean", "--select", "node-leftovers, docker", "--dry-run", "-y"])
+            as? Clean)
+        #expect(clean.selectedCategories == ["node-leftovers", "docker"])
+        #expect(clean.dryRun && clean.yes)
+        #expect(throws: (any Error).self) { try Ebb.parseAsRoot(["clean", "--select", "everything"]) }
+    }
+
+    @Test("Command-cleared items are listed with their command")
+    func commandHint() {
+        let items = ReportTests.sampleResult().items
+        #expect(Clean.commandHint([]) == "")
+        let withCommand = Item(
+            path: "/Users/me/Library/pnpm/store", categoryID: "package-caches", allocatedBytes: 2_000_000_000,
+            sharedBytes: 0, isEstimated: true, fileCount: 1, lastUsed: nil, comesBack: .redownload, reason: "",
+            preselected: true, projectPath: nil, source: "pnpm store", ruleID: nil,
+            clearCommand: "pnpm store prune", packageManaged: true
+        )
+        #expect(Clean.commandHint([withCommand]).contains("pnpm store prune   (2.0 GB)"))
+        #expect(!items.isEmpty)
     }
 }
