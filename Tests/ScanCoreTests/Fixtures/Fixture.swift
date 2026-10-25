@@ -159,8 +159,16 @@ final class Fixture {
         return await try scanner(options: options, rules: rules).scan()
     }
 
-    func scanner(options: ScanOptions? = nil, rules: [Rule] = []) throws -> DiskScanner {
-        DiskScanner(catalog: try CategoryCatalog.builtIn(), options: options ?? self.options(), rules: rules)
+    /// A scanner that sees no running processes, so a test's result doesn't
+    /// depend on what else runs on the machine.
+    func scanner(options: ScanOptions? = nil, rules: [Rule] = [],
+                 processes: [RunningProcessSignal.Process] = []) throws -> DiskScanner {
+        var scanner = DiskScanner(catalog: try CategoryCatalog.builtIn(), options: options ?? self.options(),
+                                  rules: rules)
+        scanner.signals = scanner.signals.map {
+            $0 is RunningProcessSignal ? RunningProcessSignal(processes: processes) : $0
+        }
+        return scanner
     }
 
     func absolute(_ path: String) -> String {

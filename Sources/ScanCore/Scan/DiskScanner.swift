@@ -10,8 +10,16 @@ public struct DiskScanner: Sendable {
     public let catalog: CategoryCatalog
     public let options: ScanOptions
     public let rules: [Rule]
-    /// Signals that can mark a project active. Add new ones here.
-    public var signals: [any ActivitySignal] = [GitActivitySignal(), RecentEditSignal()]
+    /// Signals that can mark a project active (spec §4, checks 1 to 5).
+    /// Pinned projects will be one more.
+    public var signals: [any ActivitySignal] = [
+        GitActivitySignal(),
+        RecentEditSignal(),
+        ClaudeCodeSessionSignal(),
+        CodexSessionSignal(),
+        RunningProcessSignal(),
+        EditorRecentsSignal(),
+    ]
     public var git: GitClient?
     /// Called as the scan moves along, from any thread, at most about ten
     /// times a second. Keep it quick.
