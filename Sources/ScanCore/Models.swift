@@ -192,10 +192,22 @@ public struct ScanResult: Codable, Equatable, Sendable {
     public let roots: [String]
     public let activeDays: Int
     public let categories: [Category]
-    public let items: [Item]
+    public internal(set) var items: [Item]
     public let skipped: [SkippedItem]
     public let activeProjects: [ActiveProject]
-    public let totals: ScanTotals
+    public internal(set) var totals: ScanTotals
     /// Problems that didn't stop the scan, e.g. an invalid custom rule.
     public var warnings: [String]
+}
+
+extension ScanResult {
+    /// The same result without the items at `paths`, totals recomputed.
+    /// Used after a clean, so the app doesn't need a new scan to update.
+    public func removingItems(at paths: Set<String>) -> ScanResult {
+        let remaining = items.filter { !paths.contains($0.path) }
+        var copy = self
+        copy.items = remaining
+        copy.totals = DiskScanner.totals(of: remaining, categories: categories)
+        return copy
+    }
 }
