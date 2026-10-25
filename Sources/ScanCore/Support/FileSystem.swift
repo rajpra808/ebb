@@ -133,14 +133,15 @@ enum FileSystem {
         request.bitmapcount = u_short(ATTR_BIT_MAP_COUNT)
         request.forkattr = attrgroup_t(ATTR_CMNEXT_PRIVATESIZE)
 
-        // Layout: u_int32_t length, then off_t private size.
-        var buffer = (UInt32(0), Int64(0))
+        // The kernel packs the reply: a u_int32_t length, then an off_t at
+        // byte 4. A Swift tuple would pad the off_t to byte 8, so use bytes.
+        var buffer = [UInt8](repeating: 0, count: 16)
         let options = UInt32(FSOPT_ATTR_CMN_EXTENDED | FSOPT_NOFOLLOW)
-        let status = withUnsafeMutableBytes(of: &buffer) { raw in
+        let status = buffer.withUnsafeMutableBytes { raw in
             getattrlist(path, &request, raw.baseAddress, raw.count, options)
         }
         guard status == 0 else { return nil }
-        return withUnsafeBytes(of: buffer) { $0.loadUnaligned(fromByteOffset: 4, as: Int64.self) }
+        return buffer.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 4, as: Int64.self) }
         #else
         return nil
         #endif
