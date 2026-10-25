@@ -11,10 +11,17 @@ public struct GitClient: Sendable {
         self.executable = executable
     }
 
-    /// Finds a usable `git`. On a Mac without developer tools `/usr/bin/git`
-    /// is a stub that pops up an install dialog, so it only counts when a
-    /// developer directory is set up.
+    /// Finds a usable `git`, once per process.
     public static func locate() -> GitClient {
+        located
+    }
+
+    private static let located = findGit()
+
+    /// On a Mac without developer tools `/usr/bin/git` is a stub that pops up
+    /// an install dialog, so it only counts when a developer directory is set
+    /// up.
+    private static func findGit() -> GitClient {
         guard let git = Subprocess.locate("git", fallbacks: ["/usr/bin/git"]) else {
             return GitClient(executable: nil)
         }

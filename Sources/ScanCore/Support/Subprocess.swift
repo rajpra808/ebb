@@ -45,6 +45,8 @@ enum Subprocess {
         } catch {
             return nil
         }
+        // Our copy of the write end must go, or the reader never sees EOF.
+        try? stdout.fileHandleForWriting.close()
 
         // Drain the pipe while the child runs; a full pipe would block it.
         let collected = Locked(Data())
@@ -56,12 +58,15 @@ enum Subprocess {
             reader.leave()
         }
 
-        if finished.wait(timeout: .now() + timeout) == .timedOut {
+        let deadline = DispatchTime.now() + timeout
+        if finished.wait(timeout: deadline) == .timedOut {
             process.terminate()
             _ = finished.wait(timeout: .now() + 1)
             return nil
         }
-        reader.wait()
+        // A grandchild that outlives the tool can keep the pipe open; don't
+        // wait for it past the deadline.
+        guard reader.wait(timeout: max(deadline, .now() + 1)) == .success else { return nil }
         return Output(status: process.terminationStatus, stdout: collected.withLock { $0 })
     }
 
