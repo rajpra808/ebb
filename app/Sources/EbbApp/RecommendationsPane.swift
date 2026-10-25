@@ -1,3 +1,4 @@
+import AppKit
 import EbbAppKit
 import ScanCore
 import SwiftUI
@@ -122,6 +123,15 @@ private struct ItemRow: View {
         .padding(.vertical, 10)
         .contentShape(Rectangle())
         .onTapGesture { model.selection.toggle(item) }
+        .contextMenu {
+            if let project = item.projectPath {
+                Button("Always keep \((project as NSString).lastPathComponent)") { model.alwaysKeep(project) }
+            }
+            if item.isTrashable {
+                Button("Always keep this item") { model.alwaysKeep(item.path) }
+                Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item.path)]) }
+            }
+        }
     }
 }
 

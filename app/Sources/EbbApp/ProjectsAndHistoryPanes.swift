@@ -42,6 +42,11 @@ struct ActiveProjectsPane: View {
             .frame(width: 260, alignment: .leading)
             FlowChips(texts: project.signals.map(\.detail))
             Spacer()
+            if model.isKept(project.path) {
+                Button("Unpin") { model.stopKeeping(project.path) }.buttonStyle(.link)
+            } else {
+                Button("Always keep") { model.alwaysKeep(project.path) }.buttonStyle(SecondaryButtonStyle())
+            }
         }
         .padding(14)
     }
@@ -55,6 +60,7 @@ struct ActiveProjectsPane: View {
                 rule("terminal", "Agent sessions", "Claude Code, Codex")
                 rule("waveform.path.ecg", "Running", "A process works inside it")
                 rule("macwindow", "Editor", "VS Code, Cursor, Xcode")
+                rule("pin", "Pinned", "You chose Always keep")
             }
         }
     }
