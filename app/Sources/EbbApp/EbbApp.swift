@@ -3,8 +3,8 @@ import ScanCore
 import EbbAppKit
 import SwiftUI
 
-@main
 struct EbbApp: App {
+    @NSApplicationDelegateAdaptor private var delegate: AppDelegate
     @State private var model = AppModel()
     @State private var navigation = Navigation()
 
@@ -15,8 +15,17 @@ struct EbbApp: App {
                 .environment(navigation)
         } label: {
             MenuBarLabel(model: model, navigation: navigation)
+                .onAppear { delegate.navigation = navigation }
         }
         .menuBarExtraStyle(.window)
+
+        Window("Welcome to Ebb", id: Navigation.welcomeID) {
+            FirstRunView()
+                .environment(model)
+                .environment(navigation)
+        }
+        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
 
         Window("Ebb", id: Navigation.windowID) {
             MainWindow()
@@ -34,12 +43,14 @@ struct EbbApp: App {
 @Observable
 final class Navigation {
     static let windowID = "main"
+    static let welcomeID = "welcome"
 
     enum Pane: String, CaseIterable, Identifiable {
         case overview = "Overview"
         case recommendations = "Recommendations"
         case activeProjects = "Active projects"
         case history = "History"
+        case settings = "Settings"
 
         var id: String { rawValue }
 
@@ -49,11 +60,14 @@ final class Navigation {
             case .recommendations: return "list.bullet.indent"
             case .activeProjects: return "shield"
             case .history: return "clock"
+            case .settings: return "slider.horizontal.3"
             }
         }
     }
 
     var pane: Pane = .overview
+    /// Set from outside SwiftUI (a notification click) to open the window.
+    var openRequested = false
 }
 
 /// The menu bar item: the wave and how much can be cleared.
@@ -65,11 +79,25 @@ struct MenuBarLabel: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: model.isScanning ? "water.waves.and.arrow.down" : "water.waves")
-            if model.safeToClearBytes > 0 {
+            if model.settings.showSizeInMenuBar && model.safeToClearBytes > 0 {
                 Text(ByteCount.format(model.safeToClearBytes)).monospacedDigit()
             }
         }
+        .onChange(of: navigation.openRequested) { _, requested in
+            guard requested else { return }
+            navigation.openRequested = false
+            openWindow(id: Navigation.windowID)
+            NSApp.activate(ignoringOtherApps: true)
+        }
         .task {
+            if let executable = Bundle.main.executablePath {
+                model.repairAgentIfNeeded(executable: executable)
+            }
+            if !model.settings.completedFirstRun {
+                openWindow(id: Navigation.welcomeID)
+                NSApp.activate(ignoringOtherApps: true)
+                return
+            }
             // `open Ebb.app --args --show-window [pane]` opens the window right
             // away, e.g. `--show-window history`.
             let arguments = CommandLine.arguments
