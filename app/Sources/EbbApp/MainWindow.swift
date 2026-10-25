@@ -19,6 +19,7 @@ struct MainWindow: View {
                 case .recommendations: RecommendationsPane()
                 case .activeProjects: ActiveProjectsPane()
                 case .history: HistoryPane()
+                case .settings: SettingsPane()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -63,6 +64,14 @@ private struct Sidebar: View {
 private struct DiskCard: View {
     @Environment(AppModel.self) private var model
 
+    private var agentLine: String {
+        guard model.settings.agent.isEnabled else { return "Daily agent off · turn it on in Settings" }
+        if let minute = model.settings.agent.earliestMinuteOfDay {
+            return "Agent on · scans daily after \(String(format: "%02d:%02d", minute / 60, minute % 60)) when idle"
+        }
+        return "Agent on · scans once a day when idle"
+    }
+
     var body: some View {
         if let space = model.freeSpace {
             VStack(alignment: .leading, spacing: 6) {
@@ -73,7 +82,7 @@ private struct DiskCard: View {
                 }
                 ProgressView(value: Double(space.total - space.free), total: Double(max(1, space.total)))
                     .tint(Theme.accent)
-                Text(model.isScanning ? "Scanning…" : "Scans when you open Ebb. The daily agent is coming.")
+                Text(model.isScanning ? "Scanning…" : agentLine)
                     .font(.caption2).foregroundStyle(.secondary)
             }
             .padding(10)
