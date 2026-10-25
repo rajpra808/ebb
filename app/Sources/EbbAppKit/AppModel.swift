@@ -21,11 +21,19 @@ public final class AppModel {
     /// One line after a clean or put back, e.g. "Moved 5 items (6.2 GB)".
     public private(set) var notice: String?
     public private(set) var isCleaning = false
+    /// Saved as soon as it changes; the next scan uses it.
+    public var settings: EbbSettings {
+        didSet {
+            guard settings != oldValue else { return }
+            try? settingsStore.save(settings)
+        }
+    }
 
     public let home: String
     private let options: ScanOptions
     private let store: ResultStore
     private let cleanHistory: CleanHistory
+    private let settingsStore: SettingsStore
     private let trash: any TrashBin
 
     public init(options: ScanOptions = .currentUser(), trash: any TrashBin = SystemTrash()) {
@@ -33,6 +41,8 @@ public final class AppModel {
         home = options.canonicalized().home
         store = ResultStore(fileURL: ResultStore.defaultLocation(home: home))
         cleanHistory = CleanHistory(fileURL: CleanHistory.defaultLocation(home: home))
+        settingsStore = SettingsStore(fileURL: SettingsStore.defaultLocation(home: home))
+        settings = settingsStore.load()
         self.trash = trash
         result = store.load()
         selection = Selection(preselectedFrom: result)
@@ -76,13 +86,17 @@ public final class AppModel {
         return (bytes, thisMonth.count)
     }
 
+    /// Everything moved to Trash and not put back, since the first clean.
+    public var freedSinceInstall: Int64 {
+        history.flatMap(\.entries).filter { $0.restoredAt == nil }.reduce(0) { $0 + $1.allocatedBytes }
+    }
+
     // MARK: Actions
 
     public func scan() async {
         guard !isScanning else { return }
         scanState = .scanning("Starting")
-        var scanner = DiskScanner(catalog: (try? CategoryCatalog.builtIn()) ?? CategoryCatalog(definitions: []),
-                                  options: options, rules: loadRules())
+        var scanner = makeScanner()
         scanner.onProgress = { [weak self] progress in
             let text = ProgressText.describe(progress)
             Task { @MainActor in
@@ -105,9 +119,7 @@ public final class AppModel {
         isCleaning = true
         defer { isCleaning = false }
 
-        let scanner = DiskScanner(catalog: (try? CategoryCatalog.builtIn()) ?? CategoryCatalog(definitions: []),
-                                  options: options, rules: loadRules())
-        let cleaner = Cleaner(scanner: scanner, history: cleanHistory, trash: trash)
+        let cleaner = Cleaner(scanner: makeScanner(), history: cleanHistory, trash: trash)
         do {
             let report = try await cleaner.clean(items, source: source)
             let moved = Set(report.moved.map(\.item.path))
@@ -122,9 +134,7 @@ public final class AppModel {
     }
 
     public func putBack(_ record: CleanRecord, paths: [String]? = nil) {
-        let scanner = DiskScanner(catalog: (try? CategoryCatalog.builtIn()) ?? CategoryCatalog(definitions: []),
-                                  options: options)
-        let cleaner = Cleaner(scanner: scanner, history: cleanHistory, trash: trash)
+        let cleaner = Cleaner(scanner: makeScanner(), history: cleanHistory, trash: trash)
         do {
             let report = try cleaner.putBack(cleanID: record.id, paths: paths)
             notice = report.failed.isEmpty
@@ -144,6 +154,64 @@ public final class AppModel {
     public func reloadHistory() {
         history = ((try? cleanHistory.load()) ?? []).sorted { $0.date > $1.date }
         bytesInTrash = (try? cleanHistory.bytesStillInTrash()) ?? 0
+    }
+
+    // MARK: Settings
+
+    /// Marks a project or path "Always keep": it drops out of the current
+    /// result now and out of every scan from here on.
+    public func alwaysKeep(_ path: String) {
+        guard !settings.alwaysKeep.contains(path) else { return }
+        settings.alwaysKeep.append(path)
+        guard let result else { return }
+        let dropped = Set(result.items.map(\.path).filter {
+            $0 == path || $0.hasPrefix(path + "/") || path.hasPrefix($0 + "/")
+        })
+        self.result = result.removingItems(at: dropped)
+        selection.remove(Array(dropped))
+        if let updated = self.result { try? store.save(updated) }
+    }
+
+    public func stopKeeping(_ path: String) {
+        settings.alwaysKeep.removeAll { $0 == path }
+    }
+
+    public func isKept(_ path: String) -> Bool {
+        settings.alwaysKeep.contains(path)
+    }
+
+    /// Turns the daily agent on or off, installing or removing its
+    /// LaunchAgent. `executable` is this app's binary.
+    public func setAgentEnabled(_ enabled: Bool, executable: String) {
+        let agent = LaunchAgent(home: home)
+        if enabled {
+            if settings.agent.earliestMinuteOfDay == nil {
+                // Somewhere between 10:00 and 18:00, fixed from then on.
+                settings.agent.earliestMinuteOfDay = Int.random(in: 600...1080)
+            }
+            do {
+                try agent.install(executable: executable)
+                settings.agent.isEnabled = true
+            } catch {
+                notice = "Couldn't turn on the daily agent: \(error)"
+            }
+        } else {
+            agent.uninstall()
+            settings.agent.isEnabled = false
+        }
+    }
+
+    /// Re-points the LaunchAgent at this copy of the app if it moved.
+    public func repairAgentIfNeeded(executable: String) {
+        let agent = LaunchAgent(home: home)
+        if settings.agent.isEnabled && !agent.isInstalled(executable: executable) {
+            try? agent.install(executable: executable)
+        }
+    }
+
+    private func makeScanner() -> DiskScanner {
+        let catalog = (try? CategoryCatalog.builtIn()) ?? CategoryCatalog(definitions: [])
+        return DiskScanner.configured(settings: settings, options: options, catalog: catalog, rules: loadRules())
     }
 
     private func loadRules() -> [Rule] {

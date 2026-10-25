@@ -43,7 +43,7 @@ public struct ItemPresentation: Equatable, Sendable {
 }
 
 extension ItemPresentation.Badge {
-    init(_ comesBack: ComesBack) {
+    public init(_ comesBack: ComesBack) {
         switch comesBack {
         case .yes: self = .comesBack
         case .redownload: self = .redownload
