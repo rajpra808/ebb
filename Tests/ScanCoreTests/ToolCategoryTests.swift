@@ -293,6 +293,7 @@ struct BuildToolCategoryTests {
 
     // MARK: 13. Duplicates
 
+    #if canImport(CryptoKit)
     @Test("Duplicates keep the oldest copy and skip projects, links and small files")
     func duplicates() async throws {
         let fixture = try Fixture()
@@ -332,4 +333,5 @@ struct BuildToolCategoryTests {
         #expect(result.item(at: lookalike) == nil)
         #expect(result.item(at: inProject) == nil)
     }
+    #endif
 }

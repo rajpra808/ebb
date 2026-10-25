@@ -74,7 +74,7 @@ struct WorkSignalTests {
             RunningProcessSignal.Process(pid: 10, command: "node", workingFolder: Paths.join(root, "apps/web")),
             RunningProcessSignal.Process(pid: 11, command: "zsh", workingFolder: fixture.home),
         ]
-        let result = await try fixture.scanner(processes: processes).scan()
+        let result = try await fixture.scanner(processes: processes).scan()
         #expect(!result.reports(anythingOverlapping: root))
         #expect(result.activeProjects.first?.signals.first?.detail == "node is running in apps/web")
     }
@@ -93,7 +93,12 @@ struct WorkSignalTests {
     func editorRecents() async throws {
         let fixture = try Fixture()
         let root = try idleProject(fixture)
-        let state = try fixture.file("Library/Application Support/Cursor/User/workspaceStorage/h1/state.vscdb")
+        #if os(macOS)
+        let support = "Library/Application Support"
+        #else
+        let support = ".config"
+        #endif
+        let state = try fixture.file("\(support)/Cursor/User/workspaceStorage/h1/state.vscdb")
         let folderURL = URL(fileURLWithPath: root).absoluteString
         try #"{ "folder": "\#(folderURL)" }"#.write(
             toFile: Paths.join(Paths.parent(of: state), "workspace.json"), atomically: true, encoding: .utf8
@@ -106,6 +111,7 @@ struct WorkSignalTests {
         #expect(result.activeProjects.first?.signals.first?.detail == "open in Cursor 4 days ago")
     }
 
+    #if os(macOS)
     @Test("Xcode workspaces opened recently protect their project")
     func xcodeRecents() async throws {
         let fixture = try Fixture()
@@ -124,4 +130,5 @@ struct WorkSignalTests {
         #expect(result.activeProjects.map(\.path) == [root])
         #expect(result.activeProjects.first?.signals.first?.detail == "open in Xcode 2 days ago")
     }
+    #endif
 }

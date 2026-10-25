@@ -156,7 +156,7 @@ final class Fixture {
     ) async throws -> ScanResult {
         var options = options()
         configure(&options)
-        return await try scanner(options: options, rules: rules).scan()
+        return try await scanner(options: options, rules: rules).scan()
     }
 
     /// A scanner that sees no running processes, so a test's result doesn't

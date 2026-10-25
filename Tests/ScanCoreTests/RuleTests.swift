@@ -124,7 +124,7 @@ struct RuleTests {
         let started = Date()
         var options = fixture.options(rulesTimeLimit: 1)
         options.checkOpenFiles = false
-        let result = await try fixture.scanner(options: options, rules: [rule]).scan()
+        let result = try await fixture.scanner(options: options, rules: [rule]).scan()
         #expect(Date().timeIntervalSince(started) < 10)
         #expect(result.items(in: "custom-rules").isEmpty)
         #expect(result.warnings.contains { $0.contains("stopped after") })
