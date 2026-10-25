@@ -6,7 +6,7 @@ import Foundation
 ///
 /// Nothing here writes to disk. The only processes started are `lsof` and
 /// `git ls-files`.
-public struct Scanner: Sendable {
+public struct DiskScanner: Sendable {
     public let catalog: CategoryCatalog
     public let options: ScanOptions
     public let rules: [Rule]
@@ -149,6 +149,7 @@ public struct Scanner: Sendable {
         let assessor = ProjectAssessor(
             signals: signals,
             leftoverRules: leftoverRules,
+            home: options.home,
             now: options.now,
             activeSince: options.activeSince,
             maxConcurrency: options.maxConcurrency,
@@ -165,19 +166,19 @@ public struct Scanner: Sendable {
             Paths.join(options.home, ".Trash"),
             options.temporaryDirectory,
         ]
-        for definition in catalog.definitions {
-            if case .knownPaths(let paths) = definition.collector {
-                excluded += paths.map { options.expand($0.path) }
-            }
+        for case .knownPaths(let paths) in catalog.definitions.flatMap(\.collectors) {
+            excluded += paths.map { options.expand($0.path) }
         }
         return excluded
     }
 
     private var leftoverRules: [LeftoverRule] {
         catalog.definitions.flatMap { definition -> [LeftoverRule] in
-            guard case .projectLeftovers(let patterns) = definition.collector else { return [] }
-            return patterns.map {
-                LeftoverRule(categoryID: definition.category.id, isReported: definition.isEnabled, pattern: $0)
+            definition.collectors.flatMap { collector -> [LeftoverRule] in
+                guard case .projectLeftovers(let patterns) = collector else { return [] }
+                return patterns.map {
+                    LeftoverRule(categoryID: definition.category.id, isReported: definition.isEnabled, pattern: $0)
+                }
             }
         }
     }
@@ -190,40 +191,85 @@ public struct Scanner: Sendable {
         options: ScanOptions,
         progress: ProgressReporter?
     ) async -> Findings {
-        progress?.begin(.collectingCandidates)
-        var findings = Findings()
-
-        let leftoverCategories = catalog.enabled.filter {
-            if case .projectLeftovers = $0.collector { return true }
-            return false
-        }
-        // Catalog order decides which category claims an overlapping path.
-        for definition in catalog.enabled {
-            switch definition.collector {
-            case .projectLeftovers:
-                // Collected together below, in one git call per project.
-                continue
-            case .knownPaths(let paths):
-                findings.merge(KnownPathCollector(category: definition.category, paths: paths,
-                                                  options: options).collect())
-            case .folderContents(let spec):
-                findings.merge(FolderContentsCollector(category: definition.category, spec: spec,
-                                                       options: options).collect())
+        let leftoverCategories = catalog.enabled.filter { definition in
+            definition.collectors.contains {
+                if case .projectLeftovers = $0 { return true }
+                return false
             }
         }
-        var ordered = await ProjectLeftoverCollector(definitions: leftoverCategories, git: git)
+        progress?.begin(.collecting("project leftovers"))
+        // Leftovers first: they're judged per project, with one git call each.
+        var findings = await ProjectLeftoverCollector(definitions: leftoverCategories, git: git)
             .collect(from: projects)
-        ordered.merge(findings)
+
+        // After that, catalog order decides which category claims a path
+        // when two overlap.
+        for definition in catalog.enabled {
+            for collector in definition.collectors {
+                findings.merge(await collect(collector, for: definition.category, projects: projects,
+                                             options: options, progress: progress))
+            }
+        }
 
         let suggestRules = rules.filter { $0.rule.action == .suggest }.count
         if suggestRules > 0 { progress?.begin(.applyingRules(ruleCount: suggestRules)) }
-        ordered.merge(await RuleCollector(
+        findings.merge(await RuleCollector(
             rules: rules,
             neverTouch: NeverTouchList(home: options.home),
             activeProjects: active,
             options: options
         ).collect())
-        return ordered
+        return findings
+    }
+
+    private func collect(
+        _ collector: CollectorSpec,
+        for category: Category,
+        projects: [ProjectAssessment],
+        options: ScanOptions,
+        progress: ProgressReporter?
+    ) async -> Findings {
+        switch collector {
+        case .projectLeftovers:
+            return Findings()
+        case .knownPaths(let paths):
+            progress?.begin(.collecting(category.title.lowercased()))
+            return KnownPathCollector(category: category, paths: paths, options: options).collect()
+        case .folderContents(let spec):
+            progress?.begin(.collecting(category.title.lowercased()))
+            return await BlockingIO.run {
+                FolderContentsCollector(category: category, spec: spec, options: options).collect()
+            }
+        case .claudeHistory(let spec):
+            progress?.begin(.collecting(category.title.lowercased()))
+            return await BlockingIO.run {
+                ClaudeHistory.collector(category: category, spec: spec, options: options).collect()
+            }
+        case .ollamaModels(let path, let days):
+            progress?.begin(.collecting("Ollama models"))
+            let age = Double(days) * 86_400
+            return await BlockingIO.run {
+                OllamaCollector(category: category, modelsFolder: path, options: options, minimumAge: age).collect()
+            }
+        case .xcodeDerivedData(let path):
+            progress?.begin(.collecting("Xcode DerivedData"))
+            return await BlockingIO.run {
+                DerivedDataCollector(category: category, folder: path, options: options, projects: projects)
+                    .collect()
+            }
+        case .unavailableSimulators:
+            guard options.queryTools else { return Findings() }
+            progress?.begin(.collecting("simulators"))
+            return await UnavailableSimulatorCollector(category: category).collect()
+        case .docker:
+            guard options.queryTools else { return Findings() }
+            progress?.begin(.collecting("Docker"))
+            return await DockerCollector(category: category, now: options.now,
+                                         recentlyChangedSince: options.recentlyChangedSince).collect()
+        case .duplicates(let spec):
+            progress?.begin(.collecting("duplicate files"))
+            return await DuplicateCollector(category: category, spec: spec, options: options).collect()
+        }
     }
 
     // MARK: - Assembly
@@ -257,7 +303,7 @@ public struct Scanner: Sendable {
             // clearing): not worth listing.
             let freesFileData = share.allocatedBytes > measurement.folderBytes
             guard freesFileData || share.holdsLinksCountedElsewhere else { return nil }
-            let lastUsed = measurement.newestModification
+            let lastUsed = measurement.lastUsed(countingReads: candidate.useAccessTime)
             return Item(
                 path: candidate.path,
                 categoryID: candidate.categoryID,

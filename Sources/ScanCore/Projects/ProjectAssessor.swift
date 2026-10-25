@@ -18,6 +18,7 @@ struct ProjectAssessment: Sendable {
 struct ProjectAssessor: Sendable {
     let signals: [any ActivitySignal]
     let leftoverRules: [LeftoverRule]
+    let home: String
     let now: Date
     let activeSince: Date
     let maxConcurrency: Int
@@ -45,7 +46,7 @@ struct ProjectAssessor: Sendable {
             return fresh
         }
 
-        let context = ActivityContext(now: now, activeSince: activeSince, survey: survey)
+        let context = ActivityContext(home: home, now: now, activeSince: activeSince, survey: survey)
         var evidence: [ActivityEvidence] = []
         for signal in signals {
             if let found = await signal.evaluate(project, in: context) {

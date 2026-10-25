@@ -21,6 +21,9 @@ public struct ScanOptions: Sendable {
     /// Follow scan roots onto other disks and network volumes.
     public var includeOtherVolumes: Bool
     public var checkOpenFiles: Bool
+    /// Ask Docker and `xcrun simctl` for their own numbers. Off in tests,
+    /// which mustn't depend on what's installed.
+    public var queryTools: Bool
     /// Upper bound on how long one custom rule may spend in one folder.
     public var ruleTimeLimit: TimeInterval
     public var maxConcurrency: Int
@@ -37,6 +40,7 @@ public struct ScanOptions: Sendable {
         includeLibraryCaches: Bool = false,
         includeOtherVolumes: Bool = false,
         checkOpenFiles: Bool = true,
+        queryTools: Bool = true,
         ruleTimeLimit: TimeInterval = 15,
         maxConcurrency: Int = min(8, max(2, ProcessInfo.processInfo.activeProcessorCount)),
         now: Date = Date()
@@ -50,6 +54,7 @@ public struct ScanOptions: Sendable {
         self.includeLibraryCaches = includeLibraryCaches
         self.includeOtherVolumes = includeOtherVolumes
         self.checkOpenFiles = checkOpenFiles
+        self.queryTools = queryTools
         self.ruleTimeLimit = ruleTimeLimit
         self.maxConcurrency = maxConcurrency
         self.now = now

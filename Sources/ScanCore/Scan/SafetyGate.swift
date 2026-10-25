@@ -25,6 +25,10 @@ struct SafetyGate: Sendable {
 
     func check(_ candidate: Candidate) -> Verdict {
         let path = candidate.path
+        // Docker's items aren't files; there's no path to protect or walk.
+        if let precomputed = candidate.precomputed, precomputed.isVirtual {
+            return judgeAge(ItemMeasurement(precomputed), of: candidate)
+        }
 
         if let entry = neverTouch.protection(for: path) {
             return .skipped(SkipReason(.protected, "protected: \(entry.why)"))
@@ -37,7 +41,6 @@ struct SafetyGate: Sendable {
         if let project = activeProjects.project(overlapping: path) {
             return .skipped(SkipReason(.activeProject, "in active project \(Paths.lastComponent(of: project))"))
         }
-
         guard let status = FileSystem.status(atPath: path) else {
             return .skipped(SkipReason(.unreadable, "disappeared during the scan"))
         }
@@ -47,6 +50,12 @@ struct SafetyGate: Sendable {
         if let open = openFiles.firstOpen(inside: path) {
             let what = open == path ? "it" : Paths.relative(open, to: path)
             return .skipped(SkipReason(.openByProcess, "\(what) is open in a running app"))
+        }
+        if let precomputed = candidate.precomputed {
+            if let open = precomputed.paths.first(where: openFiles.isOpen) {
+                return .skipped(SkipReason(.openByProcess, "\(Paths.lastComponent(of: open)) is open in a running app"))
+            }
+            return judgeAge(ItemMeasurement(precomputed), of: candidate)
         }
 
         let protectedPaths = neverTouch.pathEntries(within: path)
@@ -72,13 +81,17 @@ struct SafetyGate: Sendable {
             return .skipped(SkipReason(.unreadable, why))
         }
 
-        if let newest = measurement.newestModification {
-            if newest > recentlyChangedSince {
-                return .skipped(SkipReason(.modifiedRecently, "changed \(Age.describe(from: newest, to: now)) ago"))
-            }
-            if let minimumAge = candidate.minimumAge, newest > now.addingTimeInterval(-minimumAge) {
-                return .tooRecent
-            }
+        return judgeAge(measurement, of: candidate)
+    }
+
+    private func judgeAge(_ measurement: ItemMeasurement, of candidate: Candidate) -> Verdict {
+        if let changed = measurement.newestModification, changed > recentlyChangedSince {
+            return .skipped(SkipReason(.modifiedRecently, "changed \(Age.describe(from: changed, to: now)) ago"))
+        }
+        if let minimumAge = candidate.minimumAge,
+           let used = measurement.lastUsed(countingReads: candidate.useAccessTime),
+           used > now.addingTimeInterval(-minimumAge) {
+            return .tooRecent
         }
         return .accepted(measurement)
     }

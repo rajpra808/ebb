@@ -103,6 +103,17 @@ final class Fixture {
         try setAge(path, seconds: hours * 3600)
     }
 
+    /// Sets only the last-read date, as opening a model would.
+    func setLastRead(_ path: String, days: Double) throws {
+        let full = absolute(path)
+        guard let status = FileSystem.status(atPath: full) else { throw FixtureError("no \(path)") }
+        let read = now.addingTimeInterval(-days * 86_400)
+        var times = [timeval](repeating: timeval(), count: 2)
+        times[0].tv_sec = Int(read.timeIntervalSince1970)
+        times[1].tv_sec = Int(status.modificationDate.timeIntervalSince1970)
+        guard lutimes(full, &times) == 0 else { throw FixtureError("couldn't set the read date of \(path)") }
+    }
+
     private func setAge(_ path: String, seconds: Double) throws {
         let date = now.addingTimeInterval(-seconds)
         var times = [timeval](repeating: timeval(), count: 2)
@@ -132,6 +143,7 @@ final class Fixture {
             home: home,
             temporaryDirectory: temp,
             checkOpenFiles: false,
+            queryTools: false,
             ruleTimeLimit: rulesTimeLimit,
             maxConcurrency: 4,
             now: now
@@ -144,7 +156,11 @@ final class Fixture {
     ) async throws -> ScanResult {
         var options = options()
         configure(&options)
-        return await Scanner(catalog: try CategoryCatalog.builtIn(), options: options, rules: rules).scan()
+        return await try scanner(options: options, rules: rules).scan()
+    }
+
+    func scanner(options: ScanOptions? = nil, rules: [Rule] = []) throws -> DiskScanner {
+        DiskScanner(catalog: try CategoryCatalog.builtIn(), options: options ?? self.options(), rules: rules)
     }
 
     func absolute(_ path: String) -> String {

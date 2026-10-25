@@ -13,8 +13,10 @@ enum Paths {
         return String(path[path.index(after: slash)...])
     }
 
+    /// The folder above `path`: `/a/b` → `/a`, `/a` → `/`. A relative name
+    /// has no parent and gives "", which ends every walk up the tree.
     static func parent(of path: String) -> String {
-        guard let slash = path.lastIndex(of: "/") else { return "." }
+        guard let slash = path.lastIndex(of: "/") else { return "" }
         return slash == path.startIndex ? "/" : String(path[..<slash])
     }
 

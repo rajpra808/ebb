@@ -146,7 +146,7 @@ struct ActiveProjectTests {
         try fixture.file("code/keep/node_modules/x.js")
         try fixture.ageEverything()
 
-        var scanner = Scanner(catalog: try CategoryCatalog.builtIn(), options: fixture.options())
+        var scanner = try fixture.scanner()
         scanner.signals.append(PinnedSignal(pinned: project))
         let result = await scanner.scan()
         #expect(!result.reports(anythingOverlapping: project))
@@ -161,7 +161,7 @@ struct ActiveProjectTests {
         try fixture.ageEverything()
         try fixture.setAge(Paths.join(busy, "package.json"), days: 1)
 
-        let scanner = Scanner(catalog: try CategoryCatalog.builtIn(), options: fixture.options())
+        let scanner = try fixture.scanner()
         let found = await scanner.activeProjects()
         #expect(found.projects.map(\.path) == [busy])
         #expect(found.inactiveCount == 1)

@@ -4,7 +4,8 @@ import Dispatch
 public enum ScanProgress: Sendable, Equatable {
     case findingProjects(foldersSearched: Int, projectsFound: Int)
     case checkingProjects(checked: Int, total: Int)
-    case collectingCandidates
+    /// Looking for candidates; `what` is e.g. "Docker" or "temp files".
+    case collecting(String)
     case applyingRules(ruleCount: Int)
     /// `current` is the item most recently measured.
     case measuring(checked: Int, total: Int, current: String?)

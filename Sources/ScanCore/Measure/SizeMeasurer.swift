@@ -31,8 +31,31 @@ struct ItemMeasurement: Sendable {
     /// Newest modification date of the item or anything inside it.
     var newestModification: Date?
 
+    /// Newest read of any file inside.
+    var newestAccess: Date?
+
     mutating func noteModification(_ date: Date) {
         if newestModification.map({ date > $0 }) ?? true { newestModification = date }
+    }
+
+    mutating func noteAccess(_ date: Date) {
+        if newestAccess.map({ date > $0 }) ?? true { newestAccess = date }
+    }
+
+    /// Last write, or last read too when reads count as use.
+    func lastUsed(countingReads: Bool) -> Date? {
+        guard countingReads, let access = newestAccess else { return newestModification }
+        return max(access, newestModification ?? access)
+    }
+}
+
+extension ItemMeasurement {
+    init(_ precomputed: PrecomputedSize) {
+        self.init()
+        privateBytes = precomputed.allocatedBytes
+        fileCount = precomputed.fileCount
+        newestModification = precomputed.lastUsed
+        newestAccess = precomputed.lastUsed
     }
 }
 
@@ -104,6 +127,7 @@ struct SizeMeasurer: Sendable {
     private func add(_ status: FileStatus, at path: String, to result: inout ItemMeasurement) {
         result.fileCount += 1
         result.noteModification(status.modificationDate)
+        result.noteAccess(status.accessDate)
 
         if status.linkCount > 1 {
             let key = InodeKey(device: status.device, inode: status.inode)

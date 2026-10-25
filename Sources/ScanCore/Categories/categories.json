@@ -2,17 +2,164 @@
   "version": 1,
   "categories": [
     {
+      "id": "claude-code-history",
+      "number": 2,
+      "title": "Claude Code history",
+      "summary": "Old Claude Code chats and shell snapshots. Settings, memory and CLAUDE.md files are never touched.",
+      "comesBack": {
+        "kind": "no"
+      },
+      "rule": "Older than 30 days (or your cleanupPeriodDays)",
+      "preselected": false,
+      "collectors": [
+        {
+          "type": "claudeHistory",
+          "folders": [
+            {
+              "path": "~/.claude/projects"
+            }
+          ],
+          "depth": 2,
+          "olderThanDays": 30,
+          "skipNames": [
+            "memory"
+          ],
+          "reason": "Chat last written {age} ago"
+        },
+        {
+          "type": "claudeHistory",
+          "folders": [
+            {
+              "path": "~/.claude/shell-snapshots"
+            },
+            {
+              "path": "~/.claude/todos"
+            }
+          ],
+          "olderThanDays": 30,
+          "reason": "Last written {age} ago"
+        }
+      ]
+    },
+    {
+      "id": "agent-history",
+      "number": 3,
+      "title": "Other AI agent history",
+      "summary": "Old Codex sessions, Gemini CLI chats and Cursor workspace storage (including its chats).",
+      "comesBack": {
+        "kind": "no"
+      },
+      "rule": "Older than 30 days",
+      "preselected": false,
+      "collectors": [
+        {
+          "type": "folderContents",
+          "folders": [
+            {
+              "path": "~/.codex/sessions"
+            }
+          ],
+          "depth": 3,
+          "olderThanDays": 30,
+          "reason": "Codex sessions from {name}, last written {age} ago"
+        },
+        {
+          "type": "folderContents",
+          "folders": [
+            {
+              "path": "~/.gemini/tmp"
+            },
+            {
+              "path": "~/.gemini/history"
+            }
+          ],
+          "olderThanDays": 30,
+          "reason": "Gemini CLI data for {name}, last written {age} ago"
+        },
+        {
+          "type": "folderContents",
+          "folders": [
+            {
+              "path": "~/Library/Application Support/Cursor/User/workspaceStorage"
+            }
+          ],
+          "olderThanDays": 30,
+          "reason": "Cursor chats and state for {name}, last opened {age} ago",
+          "label": "vscodeWorkspace"
+        }
+      ]
+    },
+    {
+      "id": "local-models",
+      "number": 4,
+      "title": "Local AI models",
+      "summary": "Models from Ollama, LM Studio and Hugging Face you haven't loaded in a month.",
+      "comesBack": {
+        "kind": "redownload"
+      },
+      "rule": "Not used in 30+ days",
+      "preselected": false,
+      "collectors": [
+        {
+          "type": "ollamaModels",
+          "path": "~/.ollama/models",
+          "olderThanDays": 30
+        },
+        {
+          "type": "folderContents",
+          "folders": [
+            {
+              "path": "~/.lmstudio/models"
+            },
+            {
+              "path": "~/.cache/lm-studio/models"
+            }
+          ],
+          "depth": 2,
+          "olderThanDays": 30,
+          "useAccessTime": true,
+          "reason": "LM Studio model {name}, last used {age} ago"
+        },
+        {
+          "type": "folderContents",
+          "folders": [
+            {
+              "path": "~/.cache/huggingface/hub"
+            }
+          ],
+          "namePrefixes": [
+            "models--",
+            "datasets--"
+          ],
+          "olderThanDays": 30,
+          "useAccessTime": true,
+          "reason": "Hugging Face download {name}, last used {age} ago",
+          "label": "huggingFaceRepo"
+        }
+      ]
+    },
+    {
       "id": "python-venvs",
       "number": 5,
       "title": "Python virtual envs",
       "summary": "Virtual environments inside Python projects you haven't touched lately.",
-      "comesBack": { "kind": "yes", "howTo": "python3 -m venv .venv, then pip install -r requirements.txt" },
+      "comesBack": {
+        "kind": "yes",
+        "howTo": "python3 -m venv .venv, then pip install -r requirements.txt"
+      },
       "rule": "Project inactive",
       "preselected": true,
       "collector": {
         "type": "projectLeftovers",
         "leftovers": [
-          { "names": [".venv", "venv", "env"], "containsFile": "pyvenv.cfg" }
+          {
+            "names": [
+              ".venv",
+              "venv",
+              "env"
+            ],
+            "containsFile": "pyvenv.cfg"
+          }
         ]
       }
     },
@@ -21,15 +168,37 @@
       "number": 6,
       "title": "Node / JS build leftovers",
       "summary": "Installed packages and build output in JavaScript projects you haven't touched lately.",
-      "comesBack": { "kind": "yes", "howTo": "npm install (or pnpm/yarn/bun install), then rebuild" },
+      "comesBack": {
+        "kind": "yes",
+        "howTo": "npm install (or pnpm/yarn/bun install), then rebuild"
+      },
       "rule": "Project inactive",
       "preselected": true,
       "collector": {
         "type": "projectLeftovers",
         "leftovers": [
-          { "names": ["node_modules"], "siblingFile": "package.json" },
-          { "names": [".next", ".turbo", ".parcel-cache"], "siblingFile": "package.json" },
-          { "names": ["dist", "build"], "siblingFile": "package.json", "confirmUntracked": true }
+          {
+            "names": [
+              "node_modules"
+            ],
+            "siblingFile": "package.json"
+          },
+          {
+            "names": [
+              ".next",
+              ".turbo",
+              ".parcel-cache"
+            ],
+            "siblingFile": "package.json"
+          },
+          {
+            "names": [
+              "dist",
+              "build"
+            ],
+            "siblingFile": "package.json",
+            "confirmUntracked": true
+          }
         ]
       }
     },
@@ -38,18 +207,46 @@
       "number": 7,
       "title": "Other build outputs",
       "summary": "Rust, Swift and Gradle build folders in projects you haven't touched lately.",
-      "comesBack": { "kind": "yes", "howTo": "rebuild the project" },
+      "comesBack": {
+        "kind": "yes",
+        "howTo": "rebuild the project"
+      },
       "rule": "Project inactive",
       "preselected": true,
-      "enabled": false,
       "collector": {
         "type": "projectLeftovers",
         "leftovers": [
-          { "names": ["target"], "siblingFile": "Cargo.toml" },
-          { "names": [".build"], "siblingFile": "Package.swift" },
-          { "names": [".gradle"] },
-          { "names": ["build"], "siblingFile": "build.gradle", "confirmUntracked": true },
-          { "names": ["build"], "siblingFile": "build.gradle.kts", "confirmUntracked": true }
+          {
+            "names": [
+              "target"
+            ],
+            "siblingFile": "Cargo.toml"
+          },
+          {
+            "names": [
+              ".build"
+            ],
+            "siblingFile": "Package.swift"
+          },
+          {
+            "names": [
+              ".gradle"
+            ]
+          },
+          {
+            "names": [
+              "build"
+            ],
+            "siblingFile": "build.gradle",
+            "confirmUntracked": true
+          },
+          {
+            "names": [
+              "build"
+            ],
+            "siblingFile": "build.gradle.kts",
+            "confirmUntracked": true
+          }
         ]
       }
     },
@@ -58,25 +255,58 @@
       "number": 8,
       "title": "Package manager caches",
       "summary": "Download caches kept by package managers. They refill on the next install.",
-      "comesBack": { "kind": "yes", "howTo": "refilled on the next install" },
+      "comesBack": {
+        "kind": "yes",
+        "howTo": "refilled on the next install"
+      },
       "rule": "Always eligible",
       "preselected": true,
       "collector": {
         "type": "knownPaths",
         "paths": [
-          { "label": "npm", "path": "~/.npm/_cacache" },
-          { "label": "Yarn", "path": "~/Library/Caches/Yarn" },
-          { "label": "Yarn", "path": "~/.yarn/berry/cache" },
-          { "label": "Yarn", "path": "~/.cache/yarn" },
-          { "label": "Bun", "path": "~/.bun/install/cache" },
-          { "label": "pip", "path": "~/Library/Caches/pip" },
-          { "label": "pip", "path": "~/.cache/pip" },
-          { "label": "Homebrew", "path": "~/Library/Caches/Homebrew" },
-          { "label": "CocoaPods", "path": "~/Library/Caches/CocoaPods" },
+          {
+            "label": "npm",
+            "path": "~/.npm/_cacache"
+          },
+          {
+            "label": "Yarn",
+            "path": "~/Library/Caches/Yarn"
+          },
+          {
+            "label": "Yarn",
+            "path": "~/.yarn/berry/cache"
+          },
+          {
+            "label": "Yarn",
+            "path": "~/.cache/yarn"
+          },
+          {
+            "label": "Bun",
+            "path": "~/.bun/install/cache"
+          },
+          {
+            "label": "pip",
+            "path": "~/Library/Caches/pip"
+          },
+          {
+            "label": "pip",
+            "path": "~/.cache/pip"
+          },
+          {
+            "label": "Homebrew",
+            "path": "~/Library/Caches/Homebrew"
+          },
+          {
+            "label": "CocoaPods",
+            "path": "~/Library/Caches/CocoaPods"
+          },
           {
             "label": "Go modules",
             "path": "~/go/pkg/mod",
-            "comesBack": { "kind": "yes", "howTo": "go mod download" },
+            "comesBack": {
+              "kind": "yes",
+              "howTo": "go mod download"
+            },
             "clearCommand": "go clean -modcache"
           },
           {
@@ -101,21 +331,112 @@
       }
     },
     {
+      "id": "xcode",
+      "number": 9,
+      "title": "Xcode",
+      "summary": "Build data of inactive projects, old device support files and simulators that can't run.",
+      "comesBack": {
+        "kind": "yes",
+        "howTo": "Xcode rebuilds it, or copies device files again when you connect a device"
+      },
+      "rule": "DerivedData of inactive projects; device support not used in 30 days",
+      "preselected": true,
+      "collectors": [
+        {
+          "type": "xcodeDerivedData",
+          "path": "~/Library/Developer/Xcode/DerivedData"
+        },
+        {
+          "type": "folderContents",
+          "folders": [
+            {
+              "path": "~/Library/Developer/Xcode/iOS DeviceSupport"
+            },
+            {
+              "path": "~/Library/Developer/Xcode/watchOS DeviceSupport"
+            },
+            {
+              "path": "~/Library/Developer/Xcode/tvOS DeviceSupport"
+            },
+            {
+              "path": "~/Library/Developer/Xcode/visionOS DeviceSupport"
+            }
+          ],
+          "olderThanDays": 30,
+          "keepNewest": true,
+          "reason": "Device support for {name}, not used in {age}"
+        },
+        {
+          "type": "unavailableSimulators"
+        }
+      ]
+    },
+    {
+      "id": "xcode-archives",
+      "number": 10,
+      "title": "Xcode archives",
+      "summary": "Archived app builds. You need these to symbolicate crash reports for that version.",
+      "comesBack": {
+        "kind": "no"
+      },
+      "rule": "Older than 90 days",
+      "preselected": false,
+      "collector": {
+        "type": "folderContents",
+        "folders": [
+          {
+            "path": "~/Library/Developer/Xcode/Archives"
+          }
+        ],
+        "depth": 2,
+        "extensions": [
+          "xcarchive"
+        ],
+        "olderThanDays": 90,
+        "reason": "Archived {age} ago"
+      }
+    },
+    {
+      "id": "docker",
+      "number": 11,
+      "title": "Docker",
+      "summary": "Untagged images and build cache that no container or build uses.",
+      "comesBack": {
+        "kind": "yes",
+        "howTo": "rebuilt or pulled again when needed"
+      },
+      "rule": "Not used by any container",
+      "preselected": true,
+      "collector": {
+        "type": "docker"
+      }
+    },
+    {
       "id": "temp-files",
       "number": 12,
       "title": "Temp files",
       "summary": "Temporary files and app caches nothing has written to in days.",
-      "comesBack": { "kind": "yes", "howTo": "apps recreate them when needed" },
+      "comesBack": {
+        "kind": "yes",
+        "howTo": "apps recreate them when needed"
+      },
       "rule": "Older than 3 days and not open",
       "preselected": true,
       "collector": {
         "type": "folderContents",
         "folders": [
-          { "path": "$TMPDIR" },
-          { "path": "~/Library/Caches", "optIn": "libraryCaches" }
+          {
+            "path": "$TMPDIR"
+          },
+          {
+            "path": "~/Library/Caches",
+            "optIn": "libraryCaches"
+          }
         ],
         "olderThanDays": 3,
-        "skipNamePrefixes": ["com.apple."]
+        "skipNamePrefixes": [
+          "com.apple."
+        ]
       }
     },
     {
@@ -123,17 +444,50 @@
       "number": 14,
       "title": "Old installers",
       "summary": "Disk images, packages and zip downloads sitting in Downloads.",
-      "comesBack": { "kind": "redownload" },
+      "comesBack": {
+        "kind": "redownload"
+      },
       "rule": "Older than 30 days",
       "preselected": true,
       "collector": {
         "type": "folderContents",
-        "folders": [{ "path": "~/Downloads" }],
+        "folders": [
+          {
+            "path": "~/Downloads"
+          }
+        ],
         "olderThanDays": 30,
-        "extensions": ["dmg", "pkg", "zip"],
+        "extensions": [
+          "dmg",
+          "pkg",
+          "zip"
+        ],
         "filesOnly": true,
-        "requireDownloadedFor": ["zip"],
+        "requireDownloadedFor": [
+          "zip"
+        ],
         "reason": "Downloaded {age} ago"
+      }
+    },
+    {
+      "id": "duplicates",
+      "number": 13,
+      "title": "Duplicate files",
+      "summary": "Identical copies in Downloads, Desktop and Documents. The oldest copy is always kept.",
+      "comesBack": {
+        "kind": "no"
+      },
+      "rule": "Exact match by hash; keep the oldest copy",
+      "preselected": false,
+      "collector": {
+        "type": "duplicates",
+        "folders": [
+          "~/Downloads",
+          "~/Desktop",
+          "~/Documents"
+        ],
+        "minimumMB": 1,
+        "timeLimitSeconds": 60
       }
     }
   ]

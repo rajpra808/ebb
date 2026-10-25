@@ -4,13 +4,16 @@ import Testing
 
 @Suite("Categories")
 struct CategoryTests {
-    @Test("Bundled catalog loads and has today's categories")
+    @Test("Bundled catalog loads with every spec category but 1 and 15")
     func catalogLoads() throws {
         let catalog = try CategoryCatalog.builtIn()
-        let enabled = catalog.enabled.map(\.category.id)
-        #expect(enabled == ["python-venvs", "node-leftovers", "package-caches", "temp-files", "old-installers"])
-        #expect(catalog.definition(for: "build-outputs")?.isEnabled == false)
+        let numbers = catalog.enabled.map(\.category.number).sorted()
+        #expect(numbers == [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
         #expect(catalog.definitions.allSatisfy { !$0.category.title.isEmpty && !$0.category.summary.isEmpty })
+        // Spec §3: categories that can't come back are never pre-selected.
+        for definition in catalog.definitions where definition.category.comesBack == .no {
+            #expect(!definition.category.preselected, "\(definition.category.id)")
+        }
     }
 
     @Test("Catalog rejects duplicate ids and unknown collectors")

@@ -96,7 +96,7 @@ struct Scan: AsyncParsableCommand {
     mutating func run() async throws {
         let options = flags.options()
         let loaded = loadRules(home: options.home)
-        var scanner = Scanner(catalog: try CategoryCatalog.builtIn(), options: options, rules: loaded.rules)
+        var scanner = DiskScanner(catalog: try CategoryCatalog.builtIn(), options: options, rules: loaded.rules)
         scanner.onProgress = ProgressLine.handler(home: options.canonicalized().home, enabled: !flags.quiet)
         var result = await scanner.scan()
         result.warnings.insert(contentsOf: loaded.warnings, at: 0)
@@ -130,7 +130,7 @@ struct Active: AsyncParsableCommand {
 
     mutating func run() async throws {
         let options = flags.options()
-        var scanner = Scanner(catalog: try CategoryCatalog.builtIn(), options: options)
+        var scanner = DiskScanner(catalog: try CategoryCatalog.builtIn(), options: options)
         scanner.onProgress = ProgressLine.handler(home: options.canonicalized().home, enabled: !flags.quiet)
         let started = Date()
         let found = await scanner.activeProjects()

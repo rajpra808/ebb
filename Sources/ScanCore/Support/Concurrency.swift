@@ -65,3 +65,19 @@ final class Locked<Value>: @unchecked Sendable {
         return try body(&value)
     }
 }
+
+/// Remembers one value per key (a scan), so a signal builds its index once
+/// and every project reuses it. Building happens under the lock, so it runs
+/// once even when many projects ask at the same moment.
+final class PerScanCache<Value: Sendable>: @unchecked Sendable {
+    private let stored = Locked<(key: String, value: Value)?>(nil)
+
+    func value(for key: String, make: () -> Value) -> Value {
+        stored.withLock { stored in
+            if let stored, stored.key == key { return stored.value }
+            let value = make()
+            stored = (key, value)
+            return value
+        }
+    }
+}

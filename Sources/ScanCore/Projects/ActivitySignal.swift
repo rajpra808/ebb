@@ -16,16 +16,22 @@ public protocol ActivitySignal: Sendable {
 
 /// What a signal may look at.
 public struct ActivityContext: Sendable {
+    public let home: String
     public let now: Date
     /// Activity on or after this date makes a project active.
     public let activeSince: Date
     private let survey: @Sendable () async -> ProjectSurvey
 
-    init(now: Date, activeSince: Date, survey: @escaping @Sendable () async -> ProjectSurvey) {
+    init(home: String, now: Date, activeSince: Date, survey: @escaping @Sendable () async -> ProjectSurvey) {
+        self.home = home
         self.now = now
         self.activeSince = activeSince
         self.survey = survey
     }
+
+    /// Identifies one scan, for signals that build an index once and reuse
+    /// it for every project.
+    var cacheKey: String { "\(home)|\(activeSince.timeIntervalSince1970)" }
 
     /// A walk over the project's files. Computed at most once per project,
     /// and only if a signal asks for it.

@@ -19,7 +19,7 @@ final class ProgressLine: @unchecked Sendable {
         self.home = home
     }
 
-    /// A handler for `Scanner.onProgress`, or nil when there's nowhere to
+    /// A handler for `DiskScanner.onProgress`, or nil when there's nowhere to
     /// show it.
     static func handler(home: String, enabled: Bool) -> (@Sendable (ScanProgress) -> Void)? {
         guard enabled, isatty(STDERR_FILENO) == 1 else { return nil }
@@ -52,8 +52,8 @@ final class ProgressLine: @unchecked Sendable {
             return "  Looking for projects: \(grouped(folders)) folders searched, \(grouped(projects)) projects found"
         case .checkingProjects(let checked, let total):
             return "  Checking which projects are active: \(grouped(checked)) of \(grouped(total))"
-        case .collectingCandidates:
-            return "  Looking at caches, temp files and downloads"
+        case .collecting(let what):
+            return "  Looking at \(what)"
         case .applyingRules(let count):
             return "  Applying \(plural(count, "custom rule"))"
         case .measuring(let checked, let total, let current):

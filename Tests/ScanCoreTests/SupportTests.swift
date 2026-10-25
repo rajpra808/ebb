@@ -19,6 +19,7 @@ struct SupportTests {
         #expect(Paths.join("/", "b") == "/b")
         #expect(Paths.parent(of: "/a/b") == "/a")
         #expect(Paths.parent(of: "/a") == "/")
+        #expect(Paths.parent(of: "docker:build-cache") == "")
         #expect(Paths.lastComponent(of: "/a/b.txt") == "b.txt")
         #expect(Paths.relative("/a/b/c", to: "/a") == "b/c")
         #expect(Paths.fileExtension(of: "Tool.DMG") == "dmg")
@@ -127,8 +128,7 @@ struct ScanProgressTests {
         try fixture.ageEverything()
 
         let events = Locked<[ScanProgress]>([])
-        var scanner = Scanner(catalog: try CategoryCatalog.builtIn(), options: fixture.options(),
-                              rules: [Rule(name: "logs", pattern: #"\.log$"#, roots: ["~"])])
+        var scanner = try fixture.scanner(rules: [Rule(name: "logs", pattern: #"\.log$"#, roots: ["~"])])
         scanner.onProgress = { event in events.withLock { $0.append(event) } }
         _ = await scanner.scan()
 
@@ -136,7 +136,7 @@ struct ScanProgressTests {
             switch event {
             case .findingProjects: return "find"
             case .checkingProjects: return "check"
-            case .collectingCandidates: return "collect"
+            case .collecting: return "collect"
             case .applyingRules: return "rules"
             case .measuring: return "measure"
             case .finished: return "finished"

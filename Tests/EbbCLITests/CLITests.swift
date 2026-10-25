@@ -129,7 +129,7 @@ struct ReportTests {
                 ActiveProject(path: "/Users/me/c", markers: ["package.json"], signals: []),
                 ActiveProject(path: "/Users/me/d", markers: [".git"], signals: []),
             ],
-            totals: Scanner.totals(of: items, categories: categories),
+            totals: DiskScanner.totals(of: items, categories: categories),
             warnings: []
         )
     }
@@ -196,6 +196,7 @@ struct ProgressLineTests {
         #expect(ProgressLine.describe(.checkingProjects(checked: 61, total: 142), home: home)
             == "  Checking which projects are active: 61 of 142")
         #expect(ProgressLine.describe(.applyingRules(ruleCount: 1), home: home) == "  Applying 1 custom rule")
+        #expect(ProgressLine.describe(.collecting("Docker"), home: home) == "  Looking at Docker")
         #expect(ProgressLine.describe(.measuring(checked: 3, total: 83, current: "/Users/me/a/node_modules"),
                                       home: home) == "  Measuring 3 of 83  ~/a/node_modules")
         #expect(ProgressLine.describe(.finished, home: home) == nil)
