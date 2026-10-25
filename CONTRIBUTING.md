@@ -7,8 +7,9 @@ one costs someone's work.
 ## Ground rules
 
 - **ScanCore stays read-only.** No `removeItem`, `trashItem` or writes outside
-  `~/Library/Application Support/Ebb/` and test temp folders. Cleaning will
-  live in its own module, behind an explicit user action.
+  `~/Library/Application Support/Ebb/` and test temp folders. Moving to the
+  Trash lives in `EbbClean`, only behind an explicit user action, and never
+  calls `removeItem` on user data.
 - **Never follow symlinks.** Use `FileSystem.status` (`lstat`) and
   `FileSystem.entries` (`readdir`), not `FileManager` enumerators, so this
   stays explicit.

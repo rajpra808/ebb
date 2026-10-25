@@ -11,9 +11,10 @@ and leaves anything you're actively working on alone.
 Ebb is free and open source (MIT). No account, no telemetry, nothing leaves
 your Mac.
 
-> **Status:** early. Today there is a read-only `ebb scan` command line tool.
-> The menu bar app, the daily agent and cleaning (move to Trash, with undo)
-> come next. See [docs/SPEC.md](docs/SPEC.md) for the plan.
+> **Status:** early. There's an `ebb` command line tool and a first version
+> of the menu bar app (see [app/](app/README.md)). Cleaning moves items to
+> the Trash, logs it and can put everything back. The daily agent and
+> notifications come next. See [docs/SPEC.md](docs/SPEC.md) for the plan.
 
 ## What it looks like
 
@@ -52,6 +53,10 @@ Other commands:
 ebb scan --details      # every item with its path, size, comes-back label and reason,
                         # then everything skipped and why
 ebb scan --json         # the full result as JSON (format documented in docs/ARCHITECTURE.md)
+ebb clean               # move the pre-selected items to the Trash, after asking
+ebb clean --select node-leftovers,python-venvs --dry-run
+ebb history             # every clean, and what's still in the Trash
+ebb undo                # put the last clean back (or `ebb undo <id>`)
 ebb active              # projects Ebb considers active, and the signals behind each
 ebb rule add '\.mov$' --in ~/Movies --older 90d --larger 500MB --name "Old recordings"
 ebb rule add '^client-' --in ~/code --never-touch
@@ -63,9 +68,12 @@ ebb rule list
 These hold for every line of code, and the never-touch test suite checks them
 before each release.
 
-1. **Read-only today.** No command moves or deletes anything. When cleaning
-   arrives it will move items to the Trash (never delete), only after you
-   click, and keep a log so you can put things back.
+1. **Nothing is deleted, nothing happens on its own.** Scans are read-only.
+   Cleaning only moves items to the Trash, only after you confirm, checks
+   each item again right before moving it, and logs every move so `ebb undo`
+   or History can put it back. Ebb never empties the Trash. Items that need a
+   tool's own command (`pnpm store prune`, Docker prune) are shown with the
+   command; Ebb doesn't run it.
 2. **Your active work is off limits.** A project counts as active if, in the
    last 14 days, a source file changed, git recorded a commit, checkout or
    stage, Claude Code or Codex had a session there, or it was open in VS Code,
@@ -154,13 +162,14 @@ pull request needs, including a fixture test.
 ## Repository layout
 
 ```
-Sources/ScanCore/    the scanning library (no UI): categories, measuring,
-                     projects, rules, safety
+Sources/ScanCore/    the scanning library (no UI, read-only): categories,
+                     measuring, projects, rules, safety
+Sources/EbbClean/    move to Trash, the clean log, put back
 Sources/EbbCLI/      the ebb commands, as a library so they can be tested
 Sources/ebb/         the executable entry point
 Tests/               ScanCore and CLI tests, with fixture home folders
 cli/mac, cli/linux   per-platform install notes
-app/                 the menu bar app (not started), with the UI design
+app/                 the menu bar app (its own Swift package), with the UI design
 landing/             the landing page (not started)
 docs/                spec, architecture, categories, rules
 ```

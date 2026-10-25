@@ -5,8 +5,28 @@ Ebb is one Swift package with three targets:
 | Target | Kind | What it holds |
 |---|---|---|
 | `ScanCore` | library | Everything that looks at the disk. No UI, no printing. The app and the daily agent will use it too. |
+| `EbbClean` | library | Moving to Trash, the clean log (`history.json`) and putting back. Re-checks every item through ScanCore first. |
 | `EbbCLI` | library | The `ebb` commands (swift-argument-parser) and text formatting. A library so tests can parse and render without a process. |
 | `ebb` | executable | A five-line async entry point. |
+
+The macOS app is a second package in [`app/`](../app/README.md) that depends
+on ScanCore and EbbClean.
+
+## Cleaning
+
+`Cleaner.clean` takes items from a scan (possibly hours old) and:
+
+1. calls `DiskScanner.recheck`, which runs each item through the same
+   safety gate again with a fresh open-file list and a fresh look at the
+   project around it;
+2. moves the items that are still safe to the Trash one at a time with
+   `FileManager.trashItem`, writing each move to `history.json` before the
+   next;
+3. reports items that changed since the scan, and items that need a command,
+   without touching them.
+
+`Cleaner.putBack` moves items from the Trash back to where they were, and
+never overwrites something that has appeared at the old path since.
 
 ## A scan, step by step
 
