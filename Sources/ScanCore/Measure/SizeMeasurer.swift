@@ -1,0 +1,117 @@
+import Foundation
+
+/// Identifies a file's data on disk, shared by all of its hard links.
+struct InodeKey: Hashable, Sendable {
+    let device: UInt64
+    let inode: UInt64
+}
+
+/// A file with more than one hard link, as seen inside one item.
+struct HardLinkedFile: Sendable, Equatable {
+    let allocatedBytes: Int64
+    /// Total links the file system reports.
+    let linkCount: UInt64
+    /// How many of those links are inside the item.
+    var linksSeen: Int
+}
+
+/// The raw numbers for one item, before hard links are reconciled across
+/// the whole scan.
+struct Measurement: Sendable {
+    /// Bytes owned by this item alone: files with a single link, minus any
+    /// blocks shared with APFS clones elsewhere.
+    var privateBytes: Int64 = 0
+    /// Blocks of single-link files that are shared with clones elsewhere.
+    var cloneSharedBytes: Int64 = 0
+    var hardLinks: [InodeKey: HardLinkedFile] = [:]
+    var fileCount = 0
+    var newestModification: Date?
+}
+
+enum MeasureOutcome: Sendable {
+    case measured(Measurement)
+    /// Something inside is protected; the whole item is left alone.
+    case containsProtected(path: String, why: String)
+    /// Part of it couldn't be read, so it can't be vouched for.
+    case incomplete(path: String, why: String)
+}
+
+/// Measures allocated (on-disk) size, the way Finder's "size on disk" does,
+/// rather than logical size.
+///
+/// Walks with `lstat` only: symlinks are counted as links, never followed,
+/// and the walk doesn't cross onto another disk.
+struct SizeMeasurer: Sendable {
+    /// Returns why a file or folder inside an item is protected, if it is.
+    typealias ProtectionCheck = @Sendable (_ name: String, _ path: String) -> String?
+
+    let protection: ProtectionCheck
+
+    func measure(_ path: String) -> MeasureOutcome {
+        guard let root = FileSystem.status(atPath: path) else {
+            return .incomplete(path: path, why: "disappeared during the scan")
+        }
+        var result = Measurement()
+        guard root.isDirectory else {
+            add(root, at: path, to: &result)
+            return .measured(result)
+        }
+
+        result.privateBytes += root.allocatedSize
+        var stack = [path]
+        while let folder = stack.popLast() {
+            let entries: [DirectoryEntry]
+            do {
+                entries = try FileSystem.entries(ofDirectory: folder)
+            } catch {
+                return .incomplete(path: folder, why: "can't read \(Paths.relative(folder, to: path))")
+            }
+
+            for entry in entries {
+                let child = Paths.join(folder, entry.name)
+                if let why = protection(entry.name, child) {
+                    return .containsProtected(path: child, why: why)
+                }
+                guard let status = FileSystem.status(atPath: child) else { continue }
+                if status.device != root.device {
+                    return .incomplete(path: child, why: "contains another mounted volume")
+                }
+                if status.isDirectory {
+                    result.privateBytes += status.allocatedSize
+                    stack.append(child)
+                } else {
+                    add(status, at: child, to: &result)
+                }
+            }
+        }
+        if result.newestModification == nil {
+            result.newestModification = root.modificationDate
+        }
+        return .measured(result)
+    }
+
+    private func add(_ status: FileStatus, at path: String, to result: inout Measurement) {
+        result.fileCount += 1
+        if result.newestModification.map({ status.modificationDate > $0 }) ?? true {
+            result.newestModification = status.modificationDate
+        }
+
+        if status.linkCount > 1 {
+            let key = InodeKey(device: status.device, inode: status.inode)
+            result.hardLinks[key, default: HardLinkedFile(
+                allocatedBytes: status.allocatedSize, linkCount: status.linkCount, linksSeen: 0
+            )].linksSeen += 1
+            return
+        }
+
+        guard status.isRegularFile, status.allocatedSize > 0,
+              let privateSize = FileSystem.privateAllocatedSize(atPath: path),
+              privateSize < status.allocatedSize
+        else {
+            result.privateBytes += status.allocatedSize
+            return
+        }
+        result.privateBytes += privateSize
+        result.cloneSharedBytes += status.allocatedSize - privateSize
+    }
+}
