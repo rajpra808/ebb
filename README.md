@@ -11,10 +11,11 @@ and leaves anything you're actively working on alone.
 Ebb is free and open source (MIT). No account, no telemetry, nothing leaves
 your Mac.
 
-> **Status:** early. There's an `ebb` command line tool and a first version
-> of the menu bar app (see [app/](app/README.md)). Cleaning moves items to
-> the Trash, logs it and can put everything back. The daily agent and
-> notifications come next. See [docs/SPEC.md](docs/SPEC.md) for the plan.
+> **Status:** early. There's an `ebb` command line tool and the menu bar app
+> (see [app/](app/README.md)) with a daily agent, notifications, settings
+> and a first-run flow. Cleaning moves items to the Trash, logs it and can
+> put everything back. Signing, notarization and a Homebrew cask come next.
+> See [docs/SPEC.md](docs/SPEC.md) for the plan.
 
 ## What it looks like
 
@@ -77,7 +78,8 @@ before each release.
 2. **Your active work is off limits.** A project counts as active if, in the
    last 14 days, a source file changed, git recorded a commit, checkout or
    stage, Claude Code or Codex had a session there, or it was open in VS Code,
-   Cursor or Xcode. A process running inside it right now counts too. Nothing
+   Cursor or Xcode. A process running inside it right now counts too, and so
+   does anything you marked "Always keep". Nothing
    inside an active project is ever suggested. `ebb active` shows exactly why
    each project counts.
 3. **A built-in never-touch list always wins**, even over your own rules:
@@ -99,8 +101,8 @@ Tools like [npkill](https://github.com/voidcosmos/npkill) and
 [kondo](https://github.com/tbillington/kondo) are good at finding build
 folders when you ask. Ebb aims to be the thing you don't have to remember:
 
-- **A daily agent** (coming) that scans in the background and notifies you
-  once, only when it's worth it.
+- **A daily agent** that scans in the background and notifies you once, only
+  when it's worth it.
 - **Active-work protection** from file activity, git, AI agent sessions,
   running processes and editor recents.
 - **AI tool cleanup:** old Claude Code, Codex, Gemini and Cursor histories and
