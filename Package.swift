@@ -15,7 +15,8 @@ let package = Package(
     targets: [
         .target(
             name: "ScanCore",
-            resources: [.process("Categories/categories.json")]
+            // Compiled into the binary so `ebb` is a single file to install.
+            resources: [.embedInCode("Categories/categories.json")]
         ),
         .target(
             name: "EbbCLI",
