@@ -18,6 +18,12 @@ struct FileStatus: Sendable {
     /// Bytes of storage allocated on disk (`st_blocks * 512`).
     let allocatedSize: Int64
     let modificationDate: Date
+    /// Last read. macOS updates it on read (at most once a day per file), so
+    /// it's a fair "last used" for files like models that are only read.
+    let accessDate: Date
+    /// When the file was created. Falls back to the modification date where
+    /// the file system doesn't record it.
+    let creationDate: Date
     let ownerID: UInt32
     /// BSD file flags. Always 0 on Linux.
     let flags: UInt32
@@ -64,9 +70,13 @@ enum FileSystem {
         guard lstat(path, &info) == 0 else { return nil }
         #if canImport(Darwin)
         let modified = info.st_mtimespec
+        let accessed = info.st_atimespec
+        let created = info.st_birthtimespec
         let flags = UInt32(info.st_flags)
         #else
         let modified = info.st_mtim
+        let accessed = info.st_atim
+        let created = info.st_mtim
         let flags: UInt32 = 0
         #endif
         return FileStatus(
@@ -76,12 +86,16 @@ enum FileSystem {
             linkCount: UInt64(truncatingIfNeeded: info.st_nlink),
             logicalSize: Int64(info.st_size),
             allocatedSize: Int64(info.st_blocks) * 512,
-            modificationDate: Date(
-                timeIntervalSince1970: TimeInterval(modified.tv_sec) + TimeInterval(modified.tv_nsec) / 1e9
-            ),
+            modificationDate: date(modified),
+            accessDate: date(accessed),
+            creationDate: date(created),
             ownerID: UInt32(truncatingIfNeeded: info.st_uid),
             flags: flags
         )
+    }
+
+    private static func date(_ time: timespec) -> Date {
+        Date(timeIntervalSince1970: TimeInterval(time.tv_sec) + TimeInterval(time.tv_nsec) / 1e9)
     }
 
     static func exists(_ path: String) -> Bool {

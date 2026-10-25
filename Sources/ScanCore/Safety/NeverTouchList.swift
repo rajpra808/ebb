@@ -66,6 +66,25 @@ public struct NeverTouchList: Sendable {
         return nil
     }
 
+    /// Path entries that could match something at or below `folder`, so a
+    /// walk inside it only has to test those few.
+    public func pathEntries(within folder: String) -> [Entry] {
+        paths.filter { entry in
+            let pattern = entry.pattern
+            let literal = pattern.firstIndex { "*?[".contains($0) }.map { String(pattern[..<$0]) } ?? pattern
+            // The folder part of the literal prefix: "~/.claude/settings*.json"
+            // can only match inside "~/.claude".
+            let base = literal.hasSuffix("/") || literal == pattern ? Paths.normalized(literal)
+                : Paths.parent(of: literal)
+            return Paths.isSameOrDescendant(base, of: folder) || Paths.isSameOrDescendant(folder, of: base)
+        }
+    }
+
+    /// Whether `path` itself matches one of `entries` (from `pathEntries`).
+    public func protection(forPath path: String, among entries: [Entry]) -> Entry? {
+        entries.first { Self.matches($0.pattern, path, pathname: true) }
+    }
+
     /// The name entry matching a single file or folder name, used while
     /// walking an item's contents.
     public func protection(forName name: String) -> Entry? {
@@ -102,6 +121,9 @@ extension NeverTouchList {
         name(".env*", "environment file, may hold secrets"),
         name(".credentials*", "credentials"),
         name(".netrc", "credentials"),
+        name("*.key", "key file"),
+        name(".*_key", "key file"),
+        name(".*_key.*", "key file"),
         name(".npmrc", "may hold registry tokens"),
         name(".pypirc", "may hold registry tokens"),
         name("*.pem", "key or certificate"),

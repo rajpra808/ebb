@@ -49,8 +49,12 @@ struct SafetyGate: Sendable {
             return .skipped(SkipReason(.openByProcess, "\(what) is open in a running app"))
         }
 
+        let protectedPaths = neverTouch.pathEntries(within: path)
         let measurer = SizeMeasurer { name, child in
             if !candidate.packageManaged, let entry = neverTouch.protection(forName: name) {
+                return entry.why
+            }
+            if !protectedPaths.isEmpty, let entry = neverTouch.protection(forPath: child, among: protectedPaths) {
                 return entry.why
             }
             if let rule = rules.first(where: { protects($0, child) }) {

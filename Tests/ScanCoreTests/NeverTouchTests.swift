@@ -186,3 +186,43 @@ struct NeverTouchTests {
         #expect(reason.code == .notOwned)
     }
 }
+
+@Suite("Never-touch: protected paths inside items")
+struct ProtectedPathsInsideTests {
+    @Test("A protected path inside a candidate folder blocks the whole folder")
+    func memoryInsideHistory() throws {
+        let fixture = try Fixture()
+        try fixture.file(".claude/projects/-Users-me-app/old.jsonl")
+        try fixture.file(".claude/projects/-Users-me-app/memory/notes.md")
+        try fixture.ageEverything()
+
+        let gate = SafetyGate(
+            neverTouch: NeverTouchList(home: fixture.home), neverTouchRules: [],
+            activeProjects: ProjectIndex(roots: []), openFiles: OpenFiles(paths: []),
+            userID: getuid(), now: fixture.now, recentlyChangedSince: fixture.now.addingTimeInterval(-86_400)
+        )
+        for folder in [".claude/projects/-Users-me-app", ".claude/projects", ".claude"] {
+            let candidate = Candidate(path: fixture.absolute(folder), categoryID: "x", comesBack: .no,
+                                      preselected: false, packageManaged: true, describe: { _, _ in "" })
+            guard case .skipped(let reason) = gate.check(candidate) else {
+                Issue.record("\(folder) passed the gate with memory inside")
+                continue
+            }
+            #expect(reason.code == .protected, "\(folder)")
+        }
+    }
+
+    @Test("Path entries are narrowed to the folder being walked")
+    func narrowing() {
+        let list = NeverTouchList(home: "/Users/me")
+        let claude = list.pathEntries(within: "/Users/me/.claude/projects").map(\.pattern)
+        #expect(claude.contains("/Users/me/.claude/projects/*/memory"))
+        #expect(!claude.contains("/Users/me/.ssh"))
+        #expect(list.pathEntries(within: "/Users/me/code/app/node_modules").isEmpty)
+    }
+
+    @Test("Key files in tool folders are protected", arguments: [".elevenlabs_key", ".elevenlabs_key.old", "server.key"])
+    func keyFiles(name: String) {
+        #expect(NeverTouchList(home: "/Users/me").protection(forName: name) != nil)
+    }
+}
