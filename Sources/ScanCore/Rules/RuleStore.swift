@@ -45,6 +45,14 @@ public struct RuleStore: Sendable {
         return rule
     }
 
+    /// Removes the rule with `id` and saves. Same caution as `add`.
+    public func remove(id: String) throws {
+        var file = try load()
+        guard file.unreadableEntries == 0 else { throw RuleStoreError.wouldDropEntries(file.problems) }
+        file.rules.removeAll { $0.id == id }
+        try save(file.rules)
+    }
+
     public func save(_ rules: [Rule]) throws {
         let folder = fileURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
