@@ -50,7 +50,9 @@ final class CleanFixture {
         let path = home + "/" + relative
         try FileManager.default.createDirectory(atPath: (path as NSString).deletingLastPathComponent,
                                                 withIntermediateDirectories: true)
-        FileManager.default.createFile(atPath: path, contents: Data((0..<size).map { _ in UInt8.random(in: 0...255) }))
+        guard FileManager.default.createFile(atPath: path, contents: Data((0..<size).map { _ in UInt8.random(in: 0...255) })) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
         try age(path, days: daysOld)
         return path
     }
