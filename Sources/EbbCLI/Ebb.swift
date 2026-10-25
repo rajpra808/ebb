@@ -25,8 +25,10 @@ struct ScanFlags: ParsableArguments {
     ))
     var roots: [String] = []
 
-    @Option(help: ArgumentHelp("A project with activity in this many days is active.", valueName: "days"))
-    var activeDays: Int = 14
+    @Option(help: ArgumentHelp(
+        "A project with activity in this many days is active. Defaults to your setting (14).", valueName: "days"
+    ))
+    var activeDays: Int?
 
     @Flag(help: "Also look at ~/Library/Caches in the temp files category.")
     var libraryCaches = false
@@ -38,20 +40,32 @@ struct ScanFlags: ParsableArguments {
     var quiet = false
 
     func validate() throws {
-        guard (1...365).contains(activeDays) else {
+        if let activeDays, !(1...365).contains(activeDays) {
             throw ValidationError("--active-days must be between 1 and 365.")
         }
     }
 
+    /// Settings shared with the app, with these flags applied on top.
+    func settings() -> EbbSettings {
+        let home = ScanOptions.currentUser().home
+        var settings = SettingsStore(fileURL: SettingsStore.defaultLocation(home: home)).load()
+        if !roots.isEmpty { settings.scanFolders = roots.map { absolutePath($0, home: home) } }
+        if let activeDays { settings.activeDays = activeDays }
+        if libraryCaches { settings.includeLibraryCaches = true }
+        if allVolumes { settings.includeOtherVolumes = true }
+        return settings
+    }
+
     func options() -> ScanOptions {
         var options = ScanOptions.currentUser()
-        if !roots.isEmpty {
-            options.projectRoots = roots.map { absolutePath($0, home: options.home) }
-        }
-        options.activeDays = activeDays
-        options.includeLibraryCaches = libraryCaches
-        options.includeOtherVolumes = allVolumes
+        settings().apply(to: &options)
         return options
+    }
+
+    /// A scanner set up like the app's: settings, categories, signals, rules.
+    func scanner(rules: [Rule] = []) throws -> DiskScanner {
+        DiskScanner.configured(settings: settings(), options: ScanOptions.currentUser(),
+                               catalog: try CategoryCatalog.builtIn(), rules: rules)
     }
 }
 
@@ -98,7 +112,7 @@ struct Scan: AsyncParsableCommand {
     mutating func run() async throws {
         let options = flags.options()
         let loaded = loadRules(home: options.home)
-        var scanner = DiskScanner(catalog: try CategoryCatalog.builtIn(), options: options, rules: loaded.rules)
+        var scanner = try flags.scanner(rules: loaded.rules)
         scanner.onProgress = ProgressLine.handler(home: options.canonicalized().home, enabled: !flags.quiet)
         var result = await scanner.scan()
         result.warnings.insert(contentsOf: loaded.warnings, at: 0)
@@ -132,7 +146,7 @@ struct Active: AsyncParsableCommand {
 
     mutating func run() async throws {
         let options = flags.options()
-        var scanner = DiskScanner(catalog: try CategoryCatalog.builtIn(), options: options)
+        var scanner = try flags.scanner()
         scanner.onProgress = ProgressLine.handler(home: options.canonicalized().home, enabled: !flags.quiet)
         let started = Date()
         let found = await scanner.activeProjects()

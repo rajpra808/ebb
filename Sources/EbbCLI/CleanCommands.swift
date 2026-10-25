@@ -61,7 +61,7 @@ struct Clean: AsyncParsableCommand {
         let options = flags.options()
         let home = options.canonicalized().home
         let loaded = loadRules(home: options.home)
-        var scanner = DiskScanner(catalog: try CategoryCatalog.builtIn(), options: options, rules: loaded.rules)
+        var scanner = try flags.scanner(rules: loaded.rules)
         scanner.onProgress = ProgressLine.handler(home: home, enabled: !flags.quiet)
         let result = await scanner.scan()
 
@@ -189,7 +189,10 @@ struct Undo: ParsableCommand {
             print("  No cleans to undo.")
             return
         }
-        let cleaner = Cleaner(scanner: DiskScanner(catalog: try CategoryCatalog.builtIn(), options: options),
+        let settings = SettingsStore(fileURL: SettingsStore.defaultLocation(home: options.home)).load()
+        let scanner = DiskScanner.configured(settings: settings, options: options,
+                                             catalog: try CategoryCatalog.builtIn(), rules: [])
+        let cleaner = Cleaner(scanner: scanner,
                               history: history)
         let paths = path.isEmpty ? nil : path.map { absolutePath($0, home: home) }
         let report = try cleaner.putBack(cleanID: target, paths: paths)
