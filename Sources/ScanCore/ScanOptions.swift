@@ -12,6 +12,9 @@ public struct ScanOptions: Sendable {
     /// Folders never searched for projects (on top of `~/Library`, Trash and
     /// known cache locations, which are always skipped).
     public var excludedFolders: [String]
+    /// Paths the user marked "Always keep": never suggested, nor anything
+    /// inside them or containing them.
+    public var alwaysKeep: [String] = []
     /// A project with activity in this many days is active (spec §4).
     public var activeDays: Int
     /// Anything changed this recently is skipped, whatever the category.
@@ -88,6 +91,7 @@ public struct ScanOptions: Sendable {
         copy.temporaryDirectory = Self.canonical(temporaryDirectory)
         copy.projectRoots = projectRoots.map { Self.canonical(copy.expand($0)) }
         copy.excludedFolders = excludedFolders.map { Self.canonical(copy.expand($0)) }
+        copy.alwaysKeep = alwaysKeep.map { Self.canonical(copy.expand($0)) }
         return copy
     }
 

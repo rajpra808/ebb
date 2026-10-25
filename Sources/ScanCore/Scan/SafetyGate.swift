@@ -18,6 +18,7 @@ struct SafetyGate: Sendable {
     let userID: UInt32
     let now: Date
     let recentlyChangedSince: Date
+    var alwaysKeep = ProjectIndex(roots: [])
 
     /// How long a never-touch rule may spend on one path. If it runs out the
     /// path counts as protected.
@@ -36,6 +37,10 @@ struct SafetyGate: Sendable {
         let rules = neverTouchRules.filter { $0.overlaps(path) }
         if let rule = rules.first(where: { protects($0, path) }) {
             return .skipped(SkipReason(.protected, "matches your never-touch rule '\(rule.rule.name)'"))
+        }
+        if let kept = alwaysKeep.project(overlapping: path) {
+            let what = kept == path ? "it" : Paths.lastComponent(of: kept)
+            return .skipped(SkipReason(.protected, "you chose Always keep for \(what)"))
         }
         // Either inside an active project, or containing one.
         if let project = activeProjects.project(overlapping: path) {

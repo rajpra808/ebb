@@ -66,7 +66,8 @@ public struct DiskScanner: Sendable {
             openFiles: openFiles,
             userID: getuid(),
             now: options.now,
-            recentlyChangedSince: options.recentlyChangedSince
+            recentlyChangedSince: options.recentlyChangedSince,
+            alwaysKeep: ProjectIndex(roots: options.alwaysKeep)
         )
         let candidates = Self.removingOverlaps(findings.candidates)
         progress?.begin(.measuring(checked: 0, total: candidates.count, current: nil))
@@ -142,7 +143,8 @@ public struct DiskScanner: Sendable {
             openFiles: await openFilesSnapshot,
             userID: getuid(),
             now: options.now,
-            recentlyChangedSince: options.recentlyChangedSince
+            recentlyChangedSince: options.recentlyChangedSince,
+            alwaysKeep: ProjectIndex(roots: options.alwaysKeep)
         )
         return await items.concurrentMap(maxConcurrency: options.maxConcurrency) { item in
             guard item.isTrashable else {
