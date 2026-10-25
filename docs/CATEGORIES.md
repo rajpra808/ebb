@@ -9,17 +9,42 @@ which is compiled into the binary. Numbers match the table in
 
 | # | id | Finds | Rule | Comes back | Pre-selected |
 |---|---|---|---|---|---|
+| 2 | `claude-code-history` | Chats in `~/.claude/projects`, `~/.claude/shell-snapshots`, `~/.claude/todos` | Older than 30 days, or your `cleanupPeriodDays` if longer | no | no |
+| 3 | `agent-history` | Codex day folders in `~/.codex/sessions`, Gemini CLI `tmp` and `history`, Cursor `workspaceStorage` | Older than 30 days | no | no |
+| 4 | `local-models` | Ollama models (per tag), LM Studio models, Hugging Face downloads | Not read or written in 30 days | re-download | no |
 | 5 | `python-venvs` | `.venv`, `venv`, `env` folders containing `pyvenv.cfg` | Project inactive | yes, `pip install` | yes |
 | 6 | `node-leftovers` | `node_modules`, `.next`, `.turbo`, `.parcel-cache`, and `dist`/`build`, each next to a `package.json` | Project inactive | yes, reinstall and rebuild | yes |
+| 7 | `build-outputs` | Rust `target`, Swift `.build`, Gradle `.gradle` and `build` | Project inactive | yes, rebuild | yes |
 | 8 | `package-caches` | npm, Yarn, Bun, pip, Homebrew, CocoaPods and Go module caches; pnpm store | Always eligible | yes, refilled on next install | yes |
+| 9 | `xcode` | DerivedData, old device support, unavailable simulators | DerivedData of inactive or deleted projects; device support unused 30 days, newest kept | yes | yes |
+| 10 | `xcode-archives` | `.xcarchive` bundles in `~/Library/Developer/Xcode/Archives` | Older than 90 days | no | no |
+| 11 | `docker` | Untagged images no container uses, unused build cache | Not used by any container, older than a day | yes, rebuild or pull | yes |
 | 12 | `temp-files` | Entries in `$TMPDIR`; `~/Library/Caches` with `--library-caches` | Nothing inside changed in 3 days, not open | yes, apps recreate them | yes |
+| 13 | `duplicates` | Identical files of 1 MB or more in Downloads, Desktop, Documents | Same size, then same SHA-256; oldest copy kept | no | no |
 | 14 | `old-installers` | `.dmg`, `.pkg`, `.zip` in `~/Downloads` | Older than 30 days | re-download | yes |
 
-Category 7 (`build-outputs`: Rust `target`, Swift `.build`, Gradle) is listed
-but disabled until it has fixtures. Its folder names still count as leftovers,
-so editing them doesn't make a project look active.
+Not yet: 1 (biggest space users, info only) and 15 (Trash reminder) come
+with the app.
 
 ### Details that matter for safety
+
+- **AI tool history is never pre-selected** and its settings, credentials,
+  memory folders and `CLAUDE.md` files are on the never-touch list. A memory
+  folder inside a chat folder blocks that whole folder.
+- **Claude Code's `cleanupPeriodDays`** is read from `~/.claude/settings.json`.
+  If you set it above 30, Ebb waits that long too.
+- **Models count as used when read.** A model downloaded a year ago and loaded
+  last week is kept. Ollama models are sized by the blobs only they use, which
+  is what `ollama rm` frees.
+- **DerivedData is judged by its project** (from its `info.plist`): kept while
+  the project is active, and kept if the project is outside the scanned
+  folders, since Ebb can't tell.
+- **Docker** numbers come from `docker system df`. The suggested commands use
+  `--filter until=24h`, so they remove exactly what was counted. On macOS,
+  Docker Desktop returns the space gradually.
+- **Duplicates** skip project folders, app bundles, hidden files, hard links of
+  the same file and iCloud placeholders. Reading files for the hash updates
+  their last-read date, nothing else.
 
 - **`dist` and `build`** are common names for real folders. They're only
   suggested next to a `package.json`, and only if `git ls-files` confirms
@@ -52,9 +77,14 @@ so editing them doesn't make a project look active.
   "rule": "Project inactive", // the default rule in words
   "preselected": true,
   "enabled": true,            // optional, default true
-  "collector": { "type": "...", ... }
+  "collector": { "type": "...", ... }       // or "collectors": [ ... ] for several
 }
 ```
+
+Collector types: `projectLeftovers`, `knownPaths` and `folderContents` are
+general and described below. `claudeHistory`, `ollamaModels`,
+`xcodeDerivedData`, `unavailableSimulators`, `docker` and `duplicates` have
+logic of their own in `Sources/ScanCore/Categories`.
 
 ### `projectLeftovers`
 
@@ -112,6 +142,12 @@ Direct children of a folder, filtered by age and type.
 
 `optIn` folders are scanned only when the matching option is on (today only
 `libraryCaches`, set by `--library-caches`).
+
+More options: `depth` (candidates sit this many levels down, e.g. 3 for
+`sessions/2026/04/20`), `namePrefixes`, `skipNames`, `useAccessTime` (reads
+count as use), `keepNewest` (never the latest entry), and `label`
+(`vscodeWorkspace` or `huggingFaceRepo`) to show a readable `{name}` in the
+reason.
 
 ## Adding one
 

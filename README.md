@@ -17,21 +17,31 @@ your Mac.
 
 ## What it looks like
 
-This is a real run on the author's Mac (home folder, 28 active projects):
+This is a real run on the author's Mac (home folder, 34 active projects):
 
 ```
 $ ebb scan
-  python-venvs      1.0 GB   1 inactive project
-  node-leftovers   ~9.3 GB   19 inactive projects
-  package-caches   ~4.5 GB   Bun, pip, Homebrew, CocoaPods, Go modules
-  temp-files         41 KB   1 item
-  old-installers    3.6 MB   1 item
+  claude-code-history     2.1 MB   1 item
+  agent-history         129.8 MB   100 items
+  local-models          147.8 MB   2 items
+  python-venvs            1.0 GB   1 inactive project
+  node-leftovers         ~8.9 GB   18 inactive projects
+  build-outputs          ~1.6 GB   1 inactive project
+  package-caches         ~4.5 GB   Bun, pip, Homebrew, CocoaPods, Go modules
+  temp-files               41 KB   1 item
+  old-installers          3.6 MB   1 item
+  duplicates             11.1 GB   282 items
 
-  skipped                    28 active projects, 259 other items
-  safe to clear    14.8 GB
+  skipped                          34 active projects, 461 other items
+  safe to clear          16.0 GB
+  worth a look           11.4 GB   not pre-selected
 
-  Scanned in 10.8s. Nothing was changed. ~ means estimated.
+  Scanned in 27.0s. Nothing was changed. ~ means estimated.
 ```
+
+"Safe to clear" counts only pre-selected items. "Worth a look" is things
+that can't come back (old chats, duplicates) or that you may still want
+(models); Ebb lists them but never pre-selects them.
 
 `~` marks sizes that are estimates, usually because files are hard-linked
 with something outside the item (pnpm does this).
@@ -56,10 +66,12 @@ before each release.
 1. **Read-only today.** No command moves or deletes anything. When cleaning
    arrives it will move items to the Trash (never delete), only after you
    click, and keep a log so you can put things back.
-2. **Your active work is off limits.** A project counts as active if a source
-   file changed in the last 14 days, or git recorded a commit, checkout or
-   stage in that time. Nothing inside an active project is ever suggested.
-   `ebb active` shows exactly why each project counts.
+2. **Your active work is off limits.** A project counts as active if, in the
+   last 14 days, a source file changed, git recorded a commit, checkout or
+   stage, Claude Code or Codex had a session there, or it was open in VS Code,
+   Cursor or Xcode. A process running inside it right now counts too. Nothing
+   inside an active project is ever suggested. `ebb active` shows exactly why
+   each project counts.
 3. **A built-in never-touch list always wins**, even over your own rules:
    `.git`, `.env*`, `CLAUDE.md` and other agent memory files,
    `~/.claude/settings*.json`, `.credentials*`, `~/.codex/config*`, SSH and
@@ -81,10 +93,10 @@ folders when you ask. Ebb aims to be the thing you don't have to remember:
 
 - **A daily agent** (coming) that scans in the background and notifies you
   once, only when it's worth it.
-- **Active-work protection** that looks at file activity and git today, and
-  AI agent sessions, running processes and editor recents next.
-- **AI tool cleanup** (coming): old Claude Code, Codex and Gemini histories,
-  local models.
+- **Active-work protection** from file activity, git, AI agent sessions,
+  running processes and editor recents.
+- **AI tool cleanup:** old Claude Code, Codex, Gemini and Cursor histories and
+  unused local models, never pre-selected.
 
 ## Install and build
 

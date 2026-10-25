@@ -10,9 +10,10 @@ Ebb is one Swift package with three targets:
 
 ## A scan, step by step
 
-`Scanner.scan()` runs these steps. Nothing writes to disk. The only processes
-started are `lsof` (once) and `git ls-files` (once per inactive git project
-that has generic leftovers like `dist`).
+`DiskScanner.scan()` runs these steps. Nothing writes to disk. The processes it
+starts are `lsof` (twice: open files, working folders), `git ls-files` (once
+per inactive git project with generic leftovers like `dist`), `docker system
+df` if Docker is installed, and `xcrun simctl list` if Xcode is.
 
 1. **Canonicalize options.** Home, `$TMPDIR` and roots are resolved with
    `realpath` once, so `/var/...` and `/private/var/...` compare equal. Paths
@@ -39,7 +40,7 @@ that has generic leftovers like `dist`).
    Measuring walks the whole item and stops at any protected name or
    never-touch match inside it, at another mounted volume, or at an unreadable
    folder. Last come the 24-hour check and the category's minimum age.
-7. **Reconcile sizes and total up** (`HardLinkLedger`, `Scanner.items`).
+7. **Reconcile sizes and total up** (`HardLinkLedger`, `DiskScanner.items`).
 
 Candidate walks run in a bounded task group (`concurrentMap`, at most 8 at a
 time). Blocking file-system work runs on GCD at `.utility` QoS so it doesn't
@@ -67,8 +68,11 @@ disk", not logical size.
   needs a new `CollectorSpec` case and collector type. See
   [CATEGORIES.md](CATEGORIES.md).
 - **Activity signals:** conform to `ActivitySignal` and append it to
-  `Scanner.signals`. Checks 3 to 5 from the spec (AI agent sessions, running
-  processes, editor recents) and pinned projects go here.
+  `DiskScanner.signals`. Built in: `git`, `recent-edit`, `claude-code`
+  (sessions in `~/.claude/projects`), `codex` (session `cwd`s), `process`
+  (working folders from `lsof -d cwd`) and `editor` (VS Code-family
+  `workspaceStorage` and Xcode DerivedData). Pinned projects will be the next.
+  Signals that read an index build it once per scan with `PerScanCache`.
 
 ```swift
 public protocol ActivitySignal: Sendable {
