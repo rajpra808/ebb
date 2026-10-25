@@ -14,11 +14,14 @@ struct HardLinkLedger {
         let allocatedBytes: Int64
         /// Bytes on disk that stay because something else still uses them.
         let sharedBytes: Int64
+        /// Holds links to data that is counted under another item. Clearing
+        /// that other item only frees the space if this one goes too.
+        let holdsLinksCountedElsewhere: Bool
     }
 
     /// - Parameter measurements: in report order. The result has the same
     ///   order.
-    static func reconcile(_ measurements: [Measurement]) -> [Share] {
+    static func reconcile(_ measurements: [ItemMeasurement]) -> [Share] {
         var linksSeenInScan: [InodeKey: Int] = [:]
         for measurement in measurements {
             for (key, file) in measurement.hardLinks {
@@ -30,6 +33,7 @@ struct HardLinkLedger {
         return measurements.map { measurement in
             var allocated = measurement.privateBytes
             var shared = measurement.cloneSharedBytes
+            var countedElsewhere = false
             // Sorted so the result doesn't depend on dictionary order.
             let files = measurement.hardLinks.sorted {
                 ($0.key.device, $0.key.inode) < ($1.key.device, $1.key.inode)
@@ -40,9 +44,12 @@ struct HardLinkLedger {
                     shared += file.allocatedBytes
                 } else if claimed.insert(key).inserted {
                     allocated += file.allocatedBytes
+                } else {
+                    countedElsewhere = true
                 }
             }
-            return Share(allocatedBytes: allocated, sharedBytes: shared)
+            return Share(allocatedBytes: allocated, sharedBytes: shared,
+                         holdsLinksCountedElsewhere: countedElsewhere)
         }
     }
 }

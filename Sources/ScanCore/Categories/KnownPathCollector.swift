@@ -21,6 +21,7 @@ struct KnownPathCollector: Sendable {
                 categoryID: category.id,
                 comesBack: known.comesBack ?? category.comesBack,
                 preselected: category.preselected,
+                source: label,
                 clearCommand: command,
                 isEstimated: known.estimated ?? false,
                 packageManaged: true,

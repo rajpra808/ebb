@@ -77,7 +77,7 @@ public struct ScanOptions: Sendable {
 
     /// The same options with every folder resolved to its canonical path,
     /// so paths from `lsof` and from the walkers compare equal.
-    func canonicalized() -> ScanOptions {
+    public func canonicalized() -> ScanOptions {
         var copy = self
         copy.home = Self.canonical(home)
         copy.temporaryDirectory = Self.canonical(temporaryDirectory)

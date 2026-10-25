@@ -8,6 +8,7 @@ struct Candidate: Sendable {
     let comesBack: ComesBack
     let preselected: Bool
     let projectPath: String?
+    let source: String?
     let ruleID: String?
     let clearCommand: String?
     let isEstimated: Bool
@@ -28,6 +29,7 @@ struct Candidate: Sendable {
         comesBack: ComesBack,
         preselected: Bool,
         projectPath: String? = nil,
+        source: String? = nil,
         ruleID: String? = nil,
         clearCommand: String? = nil,
         isEstimated: Bool = false,
@@ -40,6 +42,7 @@ struct Candidate: Sendable {
         self.comesBack = comesBack
         self.preselected = preselected
         self.projectPath = projectPath
+        self.source = source
         self.ruleID = ruleID
         self.clearCommand = clearCommand
         self.isEstimated = isEstimated

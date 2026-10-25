@@ -5,7 +5,7 @@ import Foundation
 /// checks first, measuring last.
 struct SafetyGate: Sendable {
     enum Verdict: Sendable {
-        case accepted(Measurement)
+        case accepted(ItemMeasurement)
         case skipped(SkipReason)
         /// Not old enough for its category. Not interesting enough to list.
         case tooRecent
@@ -58,7 +58,7 @@ struct SafetyGate: Sendable {
             }
             return nil
         }
-        let measurement: Measurement
+        let measurement: ItemMeasurement
         switch measurer.measure(path) {
         case .measured(let result):
             measurement = result

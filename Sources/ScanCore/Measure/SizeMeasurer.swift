@@ -17,7 +17,7 @@ struct HardLinkedFile: Sendable, Equatable {
 
 /// The raw numbers for one item, before hard links are reconciled across
 /// the whole scan.
-struct Measurement: Sendable {
+struct ItemMeasurement: Sendable {
     /// Bytes owned by this item alone: files with a single link, minus any
     /// blocks shared with APFS clones elsewhere.
     var privateBytes: Int64 = 0
@@ -25,11 +25,16 @@ struct Measurement: Sendable {
     var cloneSharedBytes: Int64 = 0
     var hardLinks: [InodeKey: HardLinkedFile] = [:]
     var fileCount = 0
+    /// Newest modification date of the item or anything inside it.
     var newestModification: Date?
+
+    mutating func noteModification(_ date: Date) {
+        if newestModification.map({ date > $0 }) ?? true { newestModification = date }
+    }
 }
 
 enum MeasureOutcome: Sendable {
-    case measured(Measurement)
+    case measured(ItemMeasurement)
     /// Something inside is protected; the whole item is left alone.
     case containsProtected(path: String, why: String)
     /// Part of it couldn't be read, so it can't be vouched for.
@@ -51,13 +56,14 @@ struct SizeMeasurer: Sendable {
         guard let root = FileSystem.status(atPath: path) else {
             return .incomplete(path: path, why: "disappeared during the scan")
         }
-        var result = Measurement()
+        var result = ItemMeasurement()
         guard root.isDirectory else {
             add(root, at: path, to: &result)
             return .measured(result)
         }
 
         result.privateBytes += root.allocatedSize
+        result.newestModification = root.modificationDate
         var stack = [path]
         while let folder = stack.popLast() {
             let entries: [DirectoryEntry]
@@ -77,24 +83,22 @@ struct SizeMeasurer: Sendable {
                     return .incomplete(path: child, why: "contains another mounted volume")
                 }
                 if status.isDirectory {
+                    // A folder's own date changes when files are added,
+                    // removed or renamed, which counts as use.
                     result.privateBytes += status.allocatedSize
+                    result.noteModification(status.modificationDate)
                     stack.append(child)
                 } else {
                     add(status, at: child, to: &result)
                 }
             }
         }
-        if result.newestModification == nil {
-            result.newestModification = root.modificationDate
-        }
         return .measured(result)
     }
 
-    private func add(_ status: FileStatus, at path: String, to result: inout Measurement) {
+    private func add(_ status: FileStatus, at path: String, to result: inout ItemMeasurement) {
         result.fileCount += 1
-        if result.newestModification.map({ status.modificationDate > $0 }) ?? true {
-            result.newestModification = status.modificationDate
-        }
+        result.noteModification(status.modificationDate)
 
         if status.linkCount > 1 {
             let key = InodeKey(device: status.device, inode: status.inode)

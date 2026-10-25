@@ -91,6 +91,8 @@ public struct Item: Codable, Equatable, Sendable {
     public let preselected: Bool
     /// The project this item belongs to, for project leftovers.
     public let projectPath: String?
+    /// The tool behind it, for caches, e.g. "npm".
+    public let source: String?
     /// The custom rule that suggested this item, if any.
     public let ruleID: String?
     /// When set, the item is cleared by running this command (e.g.
@@ -182,5 +184,5 @@ public struct ScanResult: Codable, Equatable, Sendable {
     public let activeProjects: [ActiveProject]
     public let totals: ScanTotals
     /// Problems that didn't stop the scan, e.g. an invalid custom rule.
-    public let warnings: [String]
+    public var warnings: [String]
 }

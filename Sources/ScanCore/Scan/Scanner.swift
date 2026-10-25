@@ -28,7 +28,8 @@ public struct Scanner: Sendable {
         var warnings: [String] = []
 
         async let openFilesSnapshot = options.checkOpenFiles ? OpenFiles.snapshot() : OpenFiles.unavailable
-        let git = self.git ?? GitClient.locate()
+        let preset = self.git
+        let git = await BlockingIO.run { preset ?? GitClient.locate() }
         if !git.isAvailable {
             warnings.append("git isn't available; generic folders like dist/ and build/ are left alone")
         }
@@ -60,7 +61,7 @@ public struct Scanner: Sendable {
             await BlockingIO.run { gate.check(candidate) }
         }
 
-        var accepted: [(Candidate, Measurement)] = []
+        var accepted: [(Candidate, ItemMeasurement)] = []
         for (candidate, verdict) in zip(candidates, verdicts) {
             switch verdict {
             case .accepted(let measurement):
@@ -226,12 +227,13 @@ public struct Scanner: Sendable {
         return result
     }
 
-    static func items(from accepted: [(Candidate, Measurement)], now: Date) -> [Item] {
+    static func items(from accepted: [(Candidate, ItemMeasurement)], now: Date) -> [Item] {
         let shares = HardLinkLedger.reconcile(accepted.map(\.1))
         return zip(accepted, shares).compactMap { pair, share in
             let (candidate, measurement) = pair
-            // Fully shared with something we aren't clearing: frees nothing.
-            guard share.allocatedBytes > 0 else { return nil }
+            // Frees nothing and nothing else depends on it (e.g. every file
+            // is shared with something we aren't clearing): not worth listing.
+            guard share.allocatedBytes > 0 || share.holdsLinksCountedElsewhere else { return nil }
             let lastUsed = measurement.newestModification
             return Item(
                 path: candidate.path,
@@ -245,6 +247,7 @@ public struct Scanner: Sendable {
                 reason: candidate.describe(lastUsed, now),
                 preselected: candidate.preselected,
                 projectPath: candidate.projectPath,
+                source: candidate.source,
                 ruleID: candidate.ruleID,
                 clearCommand: candidate.clearCommand
             )
