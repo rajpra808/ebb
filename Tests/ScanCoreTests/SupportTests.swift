@@ -115,3 +115,35 @@ struct SupportTests {
         #expect(decoded.formatVersion == 1)
     }
 }
+
+@Suite("Scan progress")
+struct ScanProgressTests {
+    @Test("A scan reports each phase in order and ends with finished")
+    func phasesInOrder() async throws {
+        let fixture = try Fixture()
+        try fixture.project("code/app")
+        try fixture.file("code/app/node_modules/x.js")
+        try fixture.file("Downloads/a.dmg")
+        try fixture.ageEverything()
+
+        let events = Locked<[ScanProgress]>([])
+        var scanner = Scanner(catalog: try CategoryCatalog.builtIn(), options: fixture.options(),
+                              rules: [Rule(name: "logs", pattern: #"\.log$"#, roots: ["~"])])
+        scanner.onProgress = { event in events.withLock { $0.append(event) } }
+        _ = await scanner.scan()
+
+        func phase(_ event: ScanProgress) -> String {
+            switch event {
+            case .findingProjects: return "find"
+            case .checkingProjects: return "check"
+            case .collectingCandidates: return "collect"
+            case .applyingRules: return "rules"
+            case .measuring: return "measure"
+            case .finished: return "finished"
+            }
+        }
+        var phases: [String] = []
+        for name in events.withLock({ $0 }).map(phase) where phases.last != name { phases.append(name) }
+        #expect(phases == ["find", "check", "collect", "rules", "measure", "finished"])
+    }
+}

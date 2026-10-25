@@ -185,3 +185,42 @@ struct ReportTests {
         #expect(positions == positions.sorted())
     }
 }
+
+@Suite("CLI progress line")
+struct ProgressLineTests {
+    @Test("Each phase reads as a plain sentence")
+    func phases() {
+        let home = "/Users/me"
+        #expect(ProgressLine.describe(.findingProjects(foldersSearched: 12431, projectsFound: 142), home: home)
+            == "  Looking for projects: 12,431 folders searched, 142 projects found")
+        #expect(ProgressLine.describe(.checkingProjects(checked: 61, total: 142), home: home)
+            == "  Checking which projects are active: 61 of 142")
+        #expect(ProgressLine.describe(.applyingRules(ruleCount: 1), home: home) == "  Applying 1 custom rule")
+        #expect(ProgressLine.describe(.measuring(checked: 3, total: 83, current: "/Users/me/a/node_modules"),
+                                      home: home) == "  Measuring 3 of 83  ~/a/node_modules")
+        #expect(ProgressLine.describe(.finished, home: home) == nil)
+    }
+
+    @Test("Long lines keep both ends")
+    func fitting() {
+        let text = "  Measuring 1 of 2  ~/" + String(repeating: "x", count: 200) + "/node_modules"
+        let fitted = ProgressLine.fitted(text, width: 60)
+        #expect(fitted.count == 59)
+        #expect(fitted.hasPrefix("  Measuring 1 of 2"))
+        #expect(fitted.hasSuffix("/node_modules"))
+    }
+
+    @Test("Numbers get thousands separators")
+    func grouping() {
+        #expect(ProgressLine.grouped(0) == "0")
+        #expect(ProgressLine.grouped(999) == "999")
+        #expect(ProgressLine.grouped(1000) == "1,000")
+        #expect(ProgressLine.grouped(1234567) == "1,234,567")
+    }
+
+    @Test("--quiet parses")
+    func quietFlag() throws {
+        let scan = try #require(try Ebb.parseAsRoot(["scan", "-q"]) as? Scan)
+        #expect(scan.flags.quiet)
+    }
+}

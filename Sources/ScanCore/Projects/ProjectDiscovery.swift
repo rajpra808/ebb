@@ -37,6 +37,7 @@ struct ProjectDiscovery: Sendable {
     let excluded: PathSet
     let allowOtherVolumes: Bool
     let maxConcurrency: Int
+    var progress: ProgressReporter?
 
     func projects(under roots: [String]) async -> [Project] {
         var found: [Project] = []
@@ -82,6 +83,7 @@ struct ProjectDiscovery: Sendable {
             }
             return nil
         }
+        progress?.searchedFolder(foundProject: !markers.isEmpty)
         if !markers.isEmpty {
             return .project(Project(root: folder, markers: markers.sorted()))
         }

@@ -13,6 +13,9 @@ public struct Scanner: Sendable {
     /// Signals that can mark a project active. Add new ones here.
     public var signals: [any ActivitySignal] = [GitActivitySignal(), RecentEditSignal()]
     public var git: GitClient?
+    /// Called as the scan moves along, from any thread, at most about ten
+    /// times a second. Keep it quick.
+    public var onProgress: (@Sendable (ScanProgress) -> Void)?
 
     public init(catalog: CategoryCatalog, options: ScanOptions, rules: [Rule] = []) {
         self.catalog = catalog
@@ -25,6 +28,7 @@ public struct Scanner: Sendable {
     public func scan() async -> ScanResult {
         let started = Date()
         let options = options.canonicalized()
+        let progress = onProgress.map(ProgressReporter.init)
         var warnings: [String] = []
 
         async let openFilesSnapshot = options.checkOpenFiles ? OpenFiles.snapshot() : OpenFiles.unavailable
@@ -36,11 +40,11 @@ public struct Scanner: Sendable {
         let compiled = CompiledRule.compile(rules, options: options)
         warnings += compiled.warnings
 
-        let projects = await assessProjects(options: options, warnings: &warnings)
+        let projects = await assessProjects(options: options, progress: progress, warnings: &warnings)
         let active = ProjectIndex(roots: projects.filter(\.isActive).map(\.project.root))
 
         var findings = await collect(projects: projects, active: active, rules: compiled.rules,
-                                     git: git, options: options)
+                                     git: git, options: options, progress: progress)
         warnings += findings.warnings
 
         let openFiles = await openFilesSnapshot
@@ -57,8 +61,11 @@ public struct Scanner: Sendable {
             recentlyChangedSince: options.recentlyChangedSince
         )
         let candidates = Self.removingOverlaps(findings.candidates)
+        progress?.begin(.measuring(checked: 0, total: candidates.count, current: nil))
         let verdicts = await candidates.concurrentMap(maxConcurrency: options.maxConcurrency) { candidate in
-            await BlockingIO.run { gate.check(candidate) }
+            let verdict = await BlockingIO.run { gate.check(candidate) }
+            progress?.measured(candidate.path, of: candidates.count)
+            return verdict
         }
 
         var accepted: [(Candidate, ItemMeasurement)] = []
@@ -76,6 +83,7 @@ public struct Scanner: Sendable {
         }
 
         let items = Self.items(from: accepted, now: options.now)
+        progress?.begin(.finished)
         let categories = catalog.enabled.map(\.category)
             + (compiled.rules.contains { $0.rule.action == .suggest } ? [RuleCollector.category] : [])
         return ScanResult(
@@ -96,14 +104,20 @@ public struct Scanner: Sendable {
     /// Only the project half of a scan, for `ebb active`.
     public func activeProjects() async -> (projects: [ActiveProject], inactiveCount: Int, warnings: [String]) {
         let options = options.canonicalized()
+        let progress = onProgress.map(ProgressReporter.init)
         var warnings: [String] = []
-        let assessed = await assessProjects(options: options, warnings: &warnings)
+        let assessed = await assessProjects(options: options, progress: progress, warnings: &warnings)
+        progress?.begin(.finished)
         return (Self.activeProjects(from: assessed), assessed.filter { !$0.isActive }.count, warnings)
     }
 
     // MARK: - Steps
 
-    private func assessProjects(options: ScanOptions, warnings: inout [String]) async -> [ProjectAssessment] {
+    private func assessProjects(
+        options: ScanOptions,
+        progress: ProgressReporter?,
+        warnings: inout [String]
+    ) async -> [ProjectAssessment] {
         let homeDevice = FileSystem.status(atPath: options.home)?.device
         let neverTouch = NeverTouchList(home: options.home)
         var roots: [String] = []
@@ -123,10 +137,12 @@ public struct Scanner: Sendable {
             roots.append(root)
         }
 
+        progress?.begin(.findingProjects(foldersSearched: 0, projectsFound: 0))
         let discovery = ProjectDiscovery(
             excluded: PathSet(discoveryExclusions(options: options)),
             allowOtherVolumes: options.includeOtherVolumes,
-            maxConcurrency: options.maxConcurrency
+            maxConcurrency: options.maxConcurrency,
+            progress: progress
         )
         let projects = await discovery.projects(under: roots)
 
@@ -135,7 +151,8 @@ public struct Scanner: Sendable {
             leftoverRules: leftoverRules,
             now: options.now,
             activeSince: options.activeSince,
-            maxConcurrency: options.maxConcurrency
+            maxConcurrency: options.maxConcurrency,
+            progress: progress
         )
         return await assessor.assess(projects)
     }
@@ -170,8 +187,10 @@ public struct Scanner: Sendable {
         active: ProjectIndex,
         rules: [CompiledRule],
         git: GitClient,
-        options: ScanOptions
+        options: ScanOptions,
+        progress: ProgressReporter?
     ) async -> Findings {
+        progress?.begin(.collectingCandidates)
         var findings = Findings()
 
         let leftoverCategories = catalog.enabled.filter {
@@ -196,6 +215,8 @@ public struct Scanner: Sendable {
             .collect(from: projects)
         ordered.merge(findings)
 
+        let suggestRules = rules.filter { $0.rule.action == .suggest }.count
+        if suggestRules > 0 { progress?.begin(.applyingRules(ruleCount: suggestRules)) }
         ordered.merge(await RuleCollector(
             rules: rules,
             neverTouch: NeverTouchList(home: options.home),

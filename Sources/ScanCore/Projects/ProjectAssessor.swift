@@ -21,10 +21,14 @@ struct ProjectAssessor: Sendable {
     let now: Date
     let activeSince: Date
     let maxConcurrency: Int
+    var progress: ProgressReporter?
 
     func assess(_ projects: [Project]) async -> [ProjectAssessment] {
-        await projects.concurrentMap(maxConcurrency: maxConcurrency) { project in
-            await assess(project)
+        progress?.begin(.checkingProjects(checked: 0, total: projects.count))
+        return await projects.concurrentMap(maxConcurrency: maxConcurrency) { project in
+            let assessment = await assess(project)
+            progress?.checkedProject(of: projects.count)
+            return assessment
         }
     }
 

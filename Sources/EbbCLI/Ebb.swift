@@ -32,6 +32,9 @@ struct ScanFlags: ParsableArguments {
     @Flag(help: "Follow folders onto external disks and network volumes.")
     var allVolumes = false
 
+    @Flag(name: .shortAndLong, help: "Don't show what the scan is doing while it runs.")
+    var quiet = false
+
     func validate() throws {
         guard (1...365).contains(activeDays) else {
             throw ValidationError("--active-days must be between 1 and 365.")
@@ -93,8 +96,9 @@ struct Scan: AsyncParsableCommand {
     mutating func run() async throws {
         let options = flags.options()
         let loaded = loadRules(home: options.home)
-        let catalog = try CategoryCatalog.builtIn()
-        var result = await Scanner(catalog: catalog, options: options, rules: loaded.rules).scan()
+        var scanner = Scanner(catalog: try CategoryCatalog.builtIn(), options: options, rules: loaded.rules)
+        scanner.onProgress = ProgressLine.handler(home: options.canonicalized().home, enabled: !flags.quiet)
+        var result = await scanner.scan()
         result.warnings.insert(contentsOf: loaded.warnings, at: 0)
 
         if json {
@@ -126,7 +130,8 @@ struct Active: AsyncParsableCommand {
 
     mutating func run() async throws {
         let options = flags.options()
-        let scanner = Scanner(catalog: try CategoryCatalog.builtIn(), options: options)
+        var scanner = Scanner(catalog: try CategoryCatalog.builtIn(), options: options)
+        scanner.onProgress = ProgressLine.handler(home: options.canonicalized().home, enabled: !flags.quiet)
         let started = Date()
         let found = await scanner.activeProjects()
 
