@@ -98,6 +98,13 @@ public struct Item: Codable, Equatable, Sendable {
     /// When set, the item is cleared by running this command (e.g.
     /// `pnpm store prune`) rather than by moving the path to Trash.
     public let clearCommand: String?
+    /// The contents were written by a package manager and come back on
+    /// reinstall, so protected names inside (a package's own `.git`) don't
+    /// block it. Needed to check the item again before clearing.
+    public let packageManaged: Bool
+
+    /// Moving the path to Trash is how this item is cleared.
+    public var isTrashable: Bool { clearCommand == nil && path.hasPrefix("/") }
 }
 
 /// Something that looked like a candidate but was deliberately left out.
@@ -128,6 +135,12 @@ public struct SkipReason: Codable, Equatable, Sendable {
         self.code = code
         self.detail = detail
     }
+}
+
+/// Whether an item from an earlier scan is still safe to clear.
+public enum RecheckResult: Equatable, Sendable {
+    case safe(allocatedBytes: Int64)
+    case unsafe(SkipReason)
 }
 
 /// A project Ebb considers active, and what made it so.

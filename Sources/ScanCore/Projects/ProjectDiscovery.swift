@@ -39,6 +39,23 @@ struct ProjectDiscovery: Sendable {
     let maxConcurrency: Int
     var progress: ProgressReporter?
 
+    /// The outermost project that contains `path`, looking only at the
+    /// folders above it and stopping below `boundary` (the home folder).
+    static func enclosingProject(of path: String, below boundary: String) -> Project? {
+        var found: Project?
+        var folder = Paths.parent(of: path)
+        while Paths.isSameOrDescendant(folder, of: boundary), folder != boundary, !folder.isEmpty {
+            if let entries = try? FileSystem.entries(ofDirectory: folder) {
+                let markers = entries.map(\.name).filter { name in
+                    markerNames.contains(name) || Paths.fileExtension(of: name).map(markerExtensions.contains) == true
+                }
+                if !markers.isEmpty { found = Project(root: folder, markers: markers.sorted()) }
+            }
+            folder = Paths.parent(of: folder)
+        }
+        return found
+    }
+
     func projects(under roots: [String]) async -> [Project] {
         var found: [Project] = []
         for root in roots {

@@ -109,6 +109,60 @@ public struct DiskScanner: Sendable {
         )
     }
 
+    /// Checks items from an earlier scan again, right before they're cleared.
+    ///
+    /// Time passes between a scan and a click: a project may have become
+    /// active, a file may be open, something may have changed. Each item
+    /// goes through the same safety gate as in a scan, with fresh open files
+    /// and a fresh look at the project it sits in. The item's category age
+    /// rule isn't re-applied; the 24-hour rule is.
+    public func recheck(_ items: [Item]) async -> [RecheckResult] {
+        let options = options.canonicalized()
+        async let openFilesSnapshot = options.checkOpenFiles ? OpenFiles.snapshot() : OpenFiles.unavailable
+        let compiled = CompiledRule.compile(rules, options: options).rules
+
+        let home = options.home
+        let projects = await BlockingIO.run {
+            Dictionary(items.compactMap { item in
+                ProjectDiscovery.enclosingProject(of: item.path, below: home).map { (item.path, $0) }
+            }, uniquingKeysWith: { first, _ in first })
+        }
+        let assessor = ProjectAssessor(
+            signals: signals, leftoverRules: leftoverRules, home: options.home, now: options.now,
+            activeSince: options.activeSince, maxConcurrency: options.maxConcurrency
+        )
+        let unique = Dictionary(projects.values.map { ($0.root, $0) }, uniquingKeysWith: { first, _ in first })
+        let assessed = await assessor.assess(unique.values.sorted { $0.root < $1.root })
+        let active = ProjectIndex(roots: assessed.filter(\.isActive).map(\.project.root))
+
+        let gate = SafetyGate(
+            neverTouch: NeverTouchList(home: options.home),
+            neverTouchRules: compiled.filter { $0.rule.action == .neverTouch },
+            activeProjects: active,
+            openFiles: await openFilesSnapshot,
+            userID: getuid(),
+            now: options.now,
+            recentlyChangedSince: options.recentlyChangedSince
+        )
+        return await items.concurrentMap(maxConcurrency: options.maxConcurrency) { item in
+            guard item.isTrashable else {
+                return .unsafe(SkipReason(.unverified, "cleared with a command, not by moving to Trash"))
+            }
+            let candidate = Candidate(
+                path: item.path, categoryID: item.categoryID, comesBack: item.comesBack,
+                preselected: item.preselected, packageManaged: item.packageManaged, describe: { _, _ in item.reason }
+            )
+            switch await BlockingIO.run({ gate.check(candidate) }) {
+            case .accepted(let measurement):
+                return .safe(allocatedBytes: measurement.privateBytes)
+            case .skipped(let reason):
+                return .unsafe(reason)
+            case .tooRecent:
+                return .safe(allocatedBytes: item.allocatedBytes)
+            }
+        }
+    }
+
     /// Only the project half of a scan, for `ebb active`.
     public func activeProjects() async -> (projects: [ActiveProject], inactiveCount: Int, warnings: [String]) {
         let options = options.canonicalized()
@@ -326,7 +380,8 @@ public struct DiskScanner: Sendable {
                 projectPath: candidate.projectPath,
                 source: candidate.source,
                 ruleID: candidate.ruleID,
-                clearCommand: candidate.clearCommand
+                clearCommand: candidate.clearCommand,
+                packageManaged: candidate.packageManaged
             )
         }
     }
