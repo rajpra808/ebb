@@ -24,6 +24,9 @@ struct ItemMeasurement: Sendable {
     /// Blocks of single-link files that are shared with clones elsewhere.
     var cloneSharedBytes: Int64 = 0
     var hardLinks: [InodeKey: HardLinkedFile] = [:]
+    /// The part of `privateBytes` taken by folders themselves (4 KB each on
+    /// ext4, 0 on APFS).
+    var folderBytes: Int64 = 0
     var fileCount = 0
     /// Newest modification date of the item or anything inside it.
     var newestModification: Date?
@@ -63,6 +66,7 @@ struct SizeMeasurer: Sendable {
         }
 
         result.privateBytes += root.allocatedSize
+        result.folderBytes += root.allocatedSize
         result.newestModification = root.modificationDate
         var stack = [path]
         while let folder = stack.popLast() {
@@ -86,6 +90,7 @@ struct SizeMeasurer: Sendable {
                     // A folder's own date changes when files are added,
                     // removed or renamed, which counts as use.
                     result.privateBytes += status.allocatedSize
+                    result.folderBytes += status.allocatedSize
                     result.noteModification(status.modificationDate)
                     stack.append(child)
                 } else {

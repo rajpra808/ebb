@@ -19,7 +19,8 @@ struct MeasureTests {
         try fixture.file("tree/b/d/e.txt", size: 1)
 
         let result = try measure(fixture.absolute("tree"))
-        #expect(result.privateBytes == (try fixture.allocatedSize(of: fixture.absolute("tree"))))
+        let expected = try fixture.allocatedSize(of: fixture.absolute("tree"))
+        #expect(result.privateBytes == expected)
         #expect(result.fileCount == 3)
         // Allocated, not logical: a 1-byte file still takes a block.
         #expect(result.privateBytes > 10_000 + 123_457 + 1)

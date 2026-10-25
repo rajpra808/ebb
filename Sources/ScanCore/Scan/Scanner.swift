@@ -231,9 +231,11 @@ public struct Scanner: Sendable {
         let shares = HardLinkLedger.reconcile(accepted.map(\.1))
         return zip(accepted, shares).compactMap { pair, share in
             let (candidate, measurement) = pair
-            // Frees nothing and nothing else depends on it (e.g. every file
-            // is shared with something we aren't clearing): not worth listing.
-            guard share.allocatedBytes > 0 || share.holdsLinksCountedElsewhere else { return nil }
+            // Frees nothing beyond its empty folders, and nothing else depends
+            // on it (e.g. every file is shared with something we aren't
+            // clearing): not worth listing.
+            let freesFileData = share.allocatedBytes > measurement.folderBytes
+            guard freesFileData || share.holdsLinksCountedElsewhere else { return nil }
             let lastUsed = measurement.newestModification
             return Item(
                 path: candidate.path,

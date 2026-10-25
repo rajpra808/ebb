@@ -151,9 +151,29 @@ final class Fixture {
         path.hasPrefix("/") ? path : Paths.join(home, path)
     }
 
-    /// Allocated size as Foundation reports it: an independent check on
-    /// ScanCore's own `lstat` arithmetic.
+    /// Allocated size from a second implementation, to check ScanCore's own
+    /// arithmetic. On macOS that's Foundation's `totalFileAllocatedSize`.
+    /// On Linux, swift-corelibs-foundation multiplies `st_blocks` by the
+    /// block size rather than 512, so a plain `lstat` walk is used instead.
     func allocatedSize(of path: String) throws -> Int64 {
+        #if canImport(Darwin)
+        return try foundationAllocatedSize(of: path)
+        #else
+        var total = Int64(0)
+        var info = stat()
+        guard lstat(path, &info) == 0 else { throw FixtureError("can't stat \(path)") }
+        total += Int64(info.st_blocks) * 512
+        if let children = FileManager.default.enumerator(atPath: path) {
+            while let relative = children.nextObject() as? String {
+                guard lstat(Paths.join(path, relative), &info) == 0 else { continue }
+                total += Int64(info.st_blocks) * 512
+            }
+        }
+        return total
+        #endif
+    }
+
+    private func foundationAllocatedSize(of path: String) throws -> Int64 {
         let keys: Set<URLResourceKey> = [.totalFileAllocatedSizeKey, .isDirectoryKey, .isSymbolicLinkKey]
         let url = URL(fileURLWithPath: path)
         var total = Int64(try url.resourceValues(forKeys: keys).totalFileAllocatedSize ?? 0)

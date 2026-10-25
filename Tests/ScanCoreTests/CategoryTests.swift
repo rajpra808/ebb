@@ -51,7 +51,8 @@ struct CategoryTests {
         let venv = fixture.absolute("code/ml/.venv")
         let item = try #require(result.item(at: venv))
         #expect(item.categoryID == "python-venvs")
-        #expect(item.allocatedBytes == (try fixture.allocatedSize(of: venv)))
+        let expected = try fixture.allocatedSize(of: venv)
+        #expect(item.allocatedBytes == expected)
         #expect(item.fileCount == 2)
         #expect(item.preselected)
         #expect(item.projectPath == fixture.absolute("code/ml"))
@@ -78,7 +79,8 @@ struct CategoryTests {
         #expect(found == ["code/site/node_modules", "code/site/.next", "code/site/.turbo", "code/site/dist"])
 
         let modules = try #require(result.item(at: fixture.absolute("code/site/node_modules")))
-        #expect(modules.allocatedBytes == (try fixture.allocatedSize(of: modules.path)))
+        let expected = try fixture.allocatedSize(of: modules.path)
+        #expect(modules.allocatedBytes == expected)
         #expect(modules.comesBack == .yes(howTo: "npm install (or pnpm/yarn/bun install), then rebuild"))
     }
 
@@ -144,7 +146,8 @@ struct CategoryTests {
         #expect(Set(caches.compactMap(\.source)) == ["npm", "pip", "Homebrew", "Go modules", "pnpm store"])
 
         let npm = try #require(result.item(at: fixture.absolute(".npm/_cacache")))
-        #expect(npm.allocatedBytes == (try fixture.allocatedSize(of: npm.path)))
+        let expected = try fixture.allocatedSize(of: npm.path)
+        #expect(npm.allocatedBytes == expected)
         #expect(npm.clearCommand == nil)
 
         let pnpm = try #require(result.item(at: fixture.absolute("Library/pnpm/store")))
@@ -232,6 +235,7 @@ struct CategoryTests {
         #expect(result.item(at: pdf) == nil)
     }
 
+    #if os(macOS)
     @Test("Zip files only count when they were downloaded")
     func zipNeedsQuarantine() async throws {
         let fixture = try Fixture()
@@ -247,6 +251,7 @@ struct CategoryTests {
         #expect(result.item(at: ownArchive) == nil)
         #expect(result.skip(at: ownArchive)?.reason.code == .unverified)
     }
+    #endif
 
     // MARK: Totals
 
