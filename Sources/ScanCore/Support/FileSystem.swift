@@ -118,7 +118,8 @@ enum FileSystem {
         #if canImport(Darwin)
         return getxattr(path, name, nil, 0, 0, XATTR_NOFOLLOW) >= 0
         #else
-        return lgetxattr(path, name, nil, 0) >= 0
+        // Only used for the macOS quarantine flag, which Linux doesn't set.
+        return false
         #endif
     }
 
