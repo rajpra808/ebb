@@ -49,7 +49,7 @@ private struct SettingsSection<Content: View>: View {
 
 private struct DailyAgentSection: View {
     @Environment(AppModel.self) private var model
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var launchAtLogin = LoginItem.isEnabled
 
     var body: some View {
         @Bindable var model = model
@@ -95,12 +95,8 @@ private struct DailyAgentSection: View {
             Toggle("Open Ebb at login", isOn: Binding(
                 get: { launchAtLogin },
                 set: { enabled in
-                    do {
-                        if enabled { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
-                    } catch {
-                        NSSound.beep()
-                    }
-                    launchAtLogin = SMAppService.mainApp.status == .enabled
+                    launchAtLogin = LoginItem.set(enabled)
+                    if launchAtLogin != enabled { NSSound.beep() }
                 }
             ))
         }

@@ -9,7 +9,7 @@ public struct Ebb: AsyncParsableCommand {
         discussion: """
         Only `ebb clean` changes anything, and it only moves items to the Trash after you         confirm. `ebb undo` puts them back.
         """,
-        version: "0.2.4",
+        version: "0.2.5",
         subcommands: [Scan.self, Clean.self, Active.self, History.self, Undo.self, EmptyTrash.self, RuleCommand.self],
         defaultSubcommand: Scan.self
     )

@@ -60,6 +60,9 @@ uninstall() {
     rm -f "$HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
     for dir in ${EBB_APP_DIR:-/Applications "$HOME/Applications"}; do
         if [ -d "$dir/Ebb.app" ]; then
+            # Take Ebb out of Login Items first, while the app still exists.
+            "$dir/Ebb.app/Contents/MacOS/Ebb" --remove-login-item >/dev/null 2>&1 &
+            helper=$!; sleep 2; kill "$helper" 2>/dev/null || true
             rm -rf "$dir/Ebb.app"
             say "Removed $dir/Ebb.app"
         fi

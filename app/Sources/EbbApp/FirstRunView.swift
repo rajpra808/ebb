@@ -11,6 +11,7 @@ struct FirstRunView: View {
     @Environment(\.dismissWindow) private var dismissWindow
     @State private var step = Step.welcome
     @State private var hasAccess = FullDiskAccess.isGranted()
+    @State private var opensAtLogin = LoginItem.isEnabled
 
     enum Step: Int, CaseIterable {
         case welcome, diskAccess, firstScan
@@ -181,6 +182,10 @@ struct FirstRunView: View {
                         if enabled { Task { _ = await SystemNotifier.requestPermission() } }
                     }
                 ))
+                Toggle("Open Ebb at login, so the menu bar is always there", isOn: Binding(
+                    get: { opensAtLogin },
+                    set: { opensAtLogin = LoginItem.set($0) }
+                ))
                 HStack {
                     Spacer()
                     Button("Review") { finish() }.buttonStyle(PrimaryButtonStyle()).fixedSize()
@@ -188,11 +193,14 @@ struct FirstRunView: View {
             }
         }
         .task {
-            // Daily scans are on unless the user unticks them below.
-            if !model.settings.completedFirstRun && !model.settings.agent.isEnabled,
-               let executable = Bundle.main.executablePath {
-                model.setAgentEnabled(true, executable: executable)
-                _ = await SystemNotifier.requestPermission()
+            // Daily scans and opening at login are on unless the user unticks
+            // them below.
+            if !model.settings.completedFirstRun {
+                opensAtLogin = LoginItem.set(true)
+                if !model.settings.agent.isEnabled, let executable = Bundle.main.executablePath {
+                    model.setAgentEnabled(true, executable: executable)
+                    _ = await SystemNotifier.requestPermission()
+                }
             }
             if model.result == nil || !Calendar.current.isDateInToday(model.result?.startedAt ?? .distantPast) {
                 await model.scan()

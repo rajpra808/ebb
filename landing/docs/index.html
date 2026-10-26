@@ -85,7 +85,7 @@ curl -fsSL https://ebb.serveka.com/install.sh | sh</pre>
       <ol>
         <li><strong>Welcome.</strong> What Ebb does and what it promises not to do.</li>
         <li><strong>Full Disk Access.</strong> macOS hides parts of <code>~/Library</code> and some tool folders from apps. Click <strong>Open System Settings</strong>, find Ebb under Privacy &amp; Security › Full Disk Access, and switch it on. Ebb notices and carries on by itself. You can also choose <strong>Scan without it</strong>; Ebb then skips what it can't see.</li>
-        <li><strong>First scan.</strong> About a minute, read-only. At the end, switch on <strong>Scan once a day</strong> to get the daily notification, and allow notifications when macOS asks.</li>
+        <li><strong>First scan.</strong> About a minute, read-only. <strong>Scan once a day</strong> and <strong>Open Ebb at login</strong> are both on; untick either if you'd rather not. Allow notifications when macOS asks.</li>
       </ol>
     </section>
 
@@ -225,7 +225,7 @@ ebbctl rule remove d940aee9</pre>
         <tr><td>Notify when at least</td><td>2 GB</td><td>Below this, no notification. 1, 2, 5, 10 or 20 GB.</td></tr>
         <tr><td>On battery, only above</td><td>30%</td><td>On battery, the agent waits until the charge is above this.</td></tr>
         <tr><td>Show the size in the menu bar</td><td>on</td><td>The number next to the wave icon.</td></tr>
-        <tr><td>Open Ebb at login</td><td>off</td><td>Starts the menu bar app when you log in.</td></tr>
+        <tr><td>Open Ebb at login</td><td>on</td><td>Starts the menu bar app when you log in, so the panel is always there. Turned on in first run; untick it there or here.</td></tr>
         <tr><td>Active means used in the last</td><td>14 days</td><td>7, 14 or 30 days.</td></tr>
         <tr><td>Signals</td><td>all on</td><td>Turn off any of: file edits, git, Claude Code, Codex, running processes, editors.</td></tr>
         <tr><td>Look for projects in</td><td><code>~</code></td><td>Add or remove folders.</td></tr>

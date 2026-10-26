@@ -10,6 +10,11 @@ import UserNotifications
 enum Launcher {
     static func main() {
         let arguments = CommandLine.arguments
+        // Used by the uninstaller, so no login item is left behind.
+        if arguments.contains("--remove-login-item") {
+            LoginItem.set(false)
+            exit(0)
+        }
         guard arguments.contains("--agent") else {
             EbbApp.main()
             return
