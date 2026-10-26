@@ -168,16 +168,44 @@ struct HistoryPane: View {
     private var trashBanner: some View {
         HStack {
             Image(systemName: "trash").foregroundStyle(Theme.warning)
-            Text("Trash holds **\(ByteCount.format(model.bytesInTrash))** from Ebb cleans. The space is freed once you empty it; Ebb never empties the Trash for you.")
+            Text("Trash holds **\(ByteCount.format(model.bytesInTrash))** from Ebb cleans. The space is freed once it's emptied. Your own files in the Trash are never touched.")
                 .font(.callout)
             Spacer()
             Button("Open Trash") {
                 NSWorkspace.shared.open(URL(fileURLWithPath: NSHomeDirectory() + "/.Trash"))
             }
             .buttonStyle(SecondaryButtonStyle())
+            EmptyTrashButton()
         }
         .padding(12)
         .background(Theme.warningWash, in: RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+/// "Empty Ebb's items" with a confirmation, since it can't be undone.
+struct EmptyTrashButton: View {
+    @Environment(AppModel.self) private var model
+    var compact = false
+    @State private var confirming = false
+
+    var body: some View {
+        Button {
+            confirming = true
+        } label: {
+            Label(compact ? "Empty \(ByteCount.format(model.bytesInTrash))" : "Empty Ebb's items",
+                  systemImage: "trash.slash")
+        }
+        .buttonStyle(SecondaryButtonStyle())
+        .disabled(model.bytesInTrash == 0)
+        .confirmationDialog(
+            "Remove \(ByteCount.format(model.bytesInTrash)) from the Trash for good?",
+            isPresented: $confirming
+        ) {
+            Button("Empty Ebb's items", role: .destructive) { model.emptyEbbTrash() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Only what Ebb moved there is removed; anything else in your Trash stays. This can't be undone, and these items can't be put back afterwards.")
+        }
     }
 }
 
@@ -187,7 +215,7 @@ private struct CleanCard: View {
     @State private var expanded = false
 
     var body: some View {
-        let waiting = record.entries.filter { $0.restoredAt == nil && FileManager.default.fileExists(atPath: $0.trashPath) }
+        let waiting = record.entries.filter(\.isWaitingInTrash)
         Card(padding: 0) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
@@ -225,6 +253,8 @@ private struct CleanCard: View {
     private func status(_ entry: CleanRecord.Entry) -> some View {
         if entry.restoredAt != nil {
             Text("Put back").font(.caption).foregroundStyle(.secondary).frame(width: 90, alignment: .trailing)
+        } else if entry.emptiedAt != nil {
+            Text("Emptied").font(.caption).foregroundStyle(.secondary).frame(width: 90, alignment: .trailing)
         } else if FileManager.default.fileExists(atPath: entry.trashPath) {
             Button("Put back") { model.putBack(record, paths: [entry.originalPath]) }
                 .buttonStyle(.link).frame(width: 90, alignment: .trailing)

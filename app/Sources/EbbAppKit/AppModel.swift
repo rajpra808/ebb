@@ -143,6 +143,21 @@ public final class AppModel {
         reloadHistory()
     }
 
+    /// Removes for good the items Ebb moved to the Trash. Nothing else in
+    /// the Trash is touched.
+    public func emptyEbbTrash() {
+        let cleaner = Cleaner(scanner: makeScanner(), history: cleanHistory, trash: trash)
+        do {
+            let report = try cleaner.emptyTrash()
+            notice = report.failed.isEmpty
+                ? "Removed \(count(report.removedCount, "item")) from the Trash, freeing \(ByteCount.format(report.freedBytes))."
+                : "Removed \(count(report.removedCount, "item")); \(report.failed.count) couldn't be removed."
+        } catch {
+            notice = "Couldn't empty: \(error.localizedDescription)"
+        }
+        reloadHistory()
+    }
+
     public func putBack(_ record: CleanRecord, paths: [String]? = nil) {
         let cleaner = Cleaner(scanner: makeScanner(), history: cleanHistory, trash: trash)
         do {

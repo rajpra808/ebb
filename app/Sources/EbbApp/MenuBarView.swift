@@ -31,6 +31,8 @@ struct MenuBarView: View {
             footer
         }
         .frame(width: 420)
+        // The Trash may have been emptied in Finder since; keep the total honest.
+        .onAppear { model.reloadHistory() }
         .confirmationDialog(confirmTitle, isPresented: $confirming) {
             Button("Move to Trash") { Task { await model.cleanSelection(source: "menu bar") } }
             Button("Cancel", role: .cancel) {}
@@ -139,11 +141,17 @@ struct MenuBarView: View {
                 }
                 .buttonStyle(SecondaryButtonStyle())
                 Spacer()
+                if model.bytesInTrash > 0 && !model.isScanning {
+                    EmptyTrashButton(compact: true)
+                }
                 pauseMenu
             }
             HStack {
                 if let paused = model.pauseDescription {
                     Label(paused, systemImage: "pause.circle").foregroundStyle(Theme.warning)
+                } else if model.bytesInTrash > 0 && !model.isScanning {
+                    Label("\(ByteCount.format(model.bytesInTrash)) from Ebb waiting in the Trash", systemImage: "trash")
+                        .foregroundStyle(.secondary)
                 } else if model.worthALookBytes > 0 && !model.isScanning {
                     Button("+ \(ByteCount.format(model.worthALookBytes)) worth a look") {
                         openMainWindow(openWindow, navigation: navigation, pane: .recommendations)
