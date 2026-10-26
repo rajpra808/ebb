@@ -1,9 +1,14 @@
 #!/bin/sh
-# Builds Ebb.app from the SwiftPM package: release build, Info.plist, icon,
-# ad-hoc signature. Output: app/build/Ebb.app
+# Builds Ebb.app from the SwiftPM packages: release build, Info.plist,
+# icon, the `ebb` command line tool inside the bundle, ad-hoc signature.
+# Output: app/build/Ebb.app
 #
-# A Developer ID signature and notarization come later (spec §9); an
-# ad-hoc signed app runs on the Mac that built it.
+#   EBB_VERSION=0.2.0   version written to Info.plist (default 0.2.0)
+#   EBB_UNIVERSAL=1     build for both Apple silicon and Intel (needs Xcode)
+#
+# The app is signed ad hoc, not with a Developer ID, so it isn't notarized.
+# Installed with install.sh (curl, no quarantine flag) it opens normally;
+# downloaded in a browser, macOS asks once (right-click › Open).
 set -eu
 
 cd "$(dirname "$0")/.."
@@ -11,12 +16,21 @@ version=${EBB_VERSION:-0.2.0}
 build=build
 bundle="$build/Ebb.app"
 
-swift build -c release --product EbbApp
-binary="$(swift build -c release --show-bin-path)/EbbApp"
+if [ "${EBB_UNIVERSAL:-0}" = "1" ]; then
+    set -- -c release --arch arm64 --arch x86_64
+else
+    set -- -c release
+fi
+
+swift build "$@" --product EbbApp
+app_bin="$(swift build "$@" --show-bin-path)/EbbApp"
+(cd .. && swift build "$@" --product ebb)
+cli_bin="$(cd .. && swift build "$@" --show-bin-path)/ebb"
 
 rm -rf "$bundle"
-mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
-cp "$binary" "$bundle/Contents/MacOS/Ebb"
+mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Helpers" "$bundle/Contents/Resources"
+cp "$app_bin" "$bundle/Contents/MacOS/Ebb"
+cp "$cli_bin" "$bundle/Contents/Helpers/ebb"
 
 swift scripts/make-icon.swift "$build/AppIcon.iconset"
 iconutil -c icns "$build/AppIcon.iconset" -o "$bundle/Contents/Resources/AppIcon.icns"
@@ -42,5 +56,8 @@ cat > "$bundle/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
+# Inner code first, then the bundle.
+codesign --force --sign - "$bundle/Contents/Helpers/ebb"
 codesign --force --sign - "$bundle"
-echo "Built $bundle"
+codesign --verify --strict "$bundle"
+echo "Built $bundle ($version)"
