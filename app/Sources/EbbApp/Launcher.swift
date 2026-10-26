@@ -16,6 +16,7 @@ enum Launcher {
             exit(0)
         }
         guard arguments.contains("--agent") else {
+            MenuBarPlacement.prepare()
             EbbApp.main()
             return
         }
