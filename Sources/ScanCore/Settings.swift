@@ -126,7 +126,7 @@ public struct SettingsStore: Sendable {
     }
 }
 
-/// Spec §4 check 6: the user marked the project, or a folder in it,
+/// Check 6: the user marked the project, or a folder in it,
 /// "Always keep".
 public struct PinnedSignal: ActivitySignal {
     public let id = "pinned"

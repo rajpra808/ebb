@@ -60,7 +60,7 @@ extension ComesBack: Codable {
 /// A category as presented to the user. Built from `categories.json`.
 public struct Category: Codable, Equatable, Sendable, Identifiable {
     public let id: String
-    /// The number in the spec's category table (§3), for cross-reference.
+    /// The category's number in the docs/CATEGORIES.md table.
     public let number: Int
     public let title: String
     public let summary: String

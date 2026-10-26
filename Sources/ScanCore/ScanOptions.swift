@@ -15,7 +15,7 @@ public struct ScanOptions: Sendable {
     /// Paths the user marked "Always keep": never suggested, nor anything
     /// inside them or containing them.
     public var alwaysKeep: [String] = []
-    /// A project with activity in this many days is active (spec §4).
+    /// A project with activity in this many days is active.
     public var activeDays: Int
     /// Anything changed this recently is skipped, whatever the category.
     public var recentChangeWindow: TimeInterval

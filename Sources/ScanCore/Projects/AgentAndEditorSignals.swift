@@ -5,7 +5,7 @@ import Glibc
 #endif
 import Foundation
 
-// Spec §4 checks 3 to 5. Each signal reads its source once per scan into an
+// Activity checks 3 to 5. Each signal reads its source once per scan into an
 // index, then answers for every project with a lookup.
 
 /// Something seen for a folder at a time: a session, an editor window.

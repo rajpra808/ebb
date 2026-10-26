@@ -9,7 +9,6 @@ Sources/EbbAppKit/   state and display logic, no views (tested)
 Sources/EbbApp/      the SwiftUI app: menu bar popover and main window
 Tests/               EbbAppKit tests, including scan → clean → put back
 scripts/bundle.sh    builds build/Ebb.app
-design/              the UI design reference (open the .html in a browser)
 ```
 
 ## Build and run

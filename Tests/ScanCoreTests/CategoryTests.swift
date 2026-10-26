@@ -10,7 +10,7 @@ struct CategoryTests {
         let numbers = catalog.enabled.map(\.category.number).sorted()
         #expect(numbers == [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
         #expect(catalog.definitions.allSatisfy { !$0.category.title.isEmpty && !$0.category.summary.isEmpty })
-        // Spec §3: categories that can't come back are never pre-selected.
+        // Categories that can't come back are never pre-selected.
         for definition in catalog.definitions where definition.category.comesBack == .no {
             #expect(!definition.category.preselected, "\(definition.category.id)")
         }

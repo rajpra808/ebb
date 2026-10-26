@@ -67,7 +67,7 @@ public enum AgentPolicy {
         public let body: String
     }
 
-    /// The notification for a finished scan, or nil (spec §5): only when
+    /// The notification for a finished scan, or nil: only when
     /// enough can be cleared, it grew since the last notification, and none
     /// was sent today. A clean since the last notification resets "grew".
     public static func notice(

@@ -1,6 +1,6 @@
 import Foundation
 
-/// A user-defined rule (spec §6a).
+/// A user-defined rule (see docs/RULES.md).
 ///
 /// `suggest` rules add matches to "Worth a look"; they're never pre-selected
 /// and still pass every built-in check. `neverTouch` rules protect matches

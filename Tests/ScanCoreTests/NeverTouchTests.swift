@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import ScanCore
 
-/// The release gate from spec §8: none of this may ever be reported, even
+/// The release gate: none of this may ever be reported, even
 /// with a custom rule that matches everything.
 @Suite("Never-touch")
 struct NeverTouchTests {

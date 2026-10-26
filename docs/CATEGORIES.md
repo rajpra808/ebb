@@ -2,8 +2,8 @@
 
 Categories live in
 [`Sources/ScanCore/Categories/categories.json`](../Sources/ScanCore/Categories/categories.json),
-which is compiled into the binary. Numbers match the table in
-[SPEC.md](SPEC.md) §3.
+which is compiled into the binary. Each category has a stable `id` and a
+`number`, the row in the table below.
 
 ## Implemented
 
@@ -70,7 +70,7 @@ with the app.
 ```jsonc
 {
   "id": "node-leftovers",     // stable, used in JSON and `ebb clean --select` later
-  "number": 6,                // spec table number, for cross-reference
+  "number": 6,                // its row in the table above
   "title": "Node / JS build leftovers",
   "summary": "One sentence shown in the app.",
   "comesBack": { "kind": "yes", "howTo": "npm install" },   // or redownload | no | notApplicable

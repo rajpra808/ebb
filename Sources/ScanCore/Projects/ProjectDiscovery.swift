@@ -7,7 +7,7 @@ public struct Project: Sendable, Equatable {
 
 /// Finds projects under the scan roots.
 ///
-/// A project is the *outermost* folder with a marker (spec §4). Folders
+/// A project is the *outermost* folder with a marker. Folders
 /// inside it, including nested packages in a monorepo, belong to it: if any
 /// part is active, all of it is. That errs toward keeping things.
 struct ProjectDiscovery: Sendable {

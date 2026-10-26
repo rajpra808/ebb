@@ -2,10 +2,10 @@ import Foundation
 
 /// One way of telling that someone is working on a project.
 ///
-/// Day 1 ships two signals: recent edits and recent git activity. The rest
-/// from spec §4 (AI agent sessions, running processes, editor recents,
-/// pinned projects) plug in here as further conformances; the scanner asks
-/// every signal and a project is active if any of them answers.
+/// Built in: recent edits, git activity, AI agent sessions, running
+/// processes, editor recents and pinned projects. The scanner asks every
+/// signal, and a project is active if any of them answers. New ways of
+/// telling are new conformances.
 public protocol ActivitySignal: Sendable {
     /// Short, stable identifier shown in `ebb active` and stored in JSON.
     var id: String { get }
@@ -40,7 +40,7 @@ public struct ActivityContext: Sendable {
     }
 }
 
-/// Spec §4 check 1: a file outside the leftover folders changed recently.
+/// Check 1: a file outside the leftover folders changed recently.
 public struct RecentEditSignal: ActivitySignal {
     public let id = "recent-edit"
 
@@ -59,7 +59,7 @@ public struct RecentEditSignal: ActivitySignal {
     }
 }
 
-/// Spec §4 check 2: `.git/HEAD`, `.git/index` or `.git/logs/HEAD` changed
+/// Check 2: `.git/HEAD`, `.git/index` or `.git/logs/HEAD` changed
 /// recently, meaning a commit, checkout, stage or pull.
 public struct GitActivitySignal: ActivitySignal {
     public let id = "git"

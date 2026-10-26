@@ -3,7 +3,7 @@ import EbbAppKit
 import ScanCore
 import SwiftUI
 
-/// Colors and type from the design (app/design/ebb-app-design.html).
+/// Colors and type of Ebb's design, built around the teal #0E5E6F.
 enum Theme {
     /// The brand teal (#0E5E6F). In dark mode a lighter teal keeps text and
     /// bars readable.

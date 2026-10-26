@@ -240,7 +240,7 @@ Sources/EbbClean/    move to Trash, the clean log, put back
 Sources/EbbCLI/      the ebbctl commands
 app/                 the menu bar app (SwiftUI), its own Swift package
 landing/             ebb.serveka.com and install.sh
-docs/                spec, architecture, categories, rules
+docs/                architecture, categories, rules
 ```
 
 ## Contributing

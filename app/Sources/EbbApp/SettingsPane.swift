@@ -4,8 +4,8 @@ import ScanCore
 import ServiceManagement
 import SwiftUI
 
-/// Settings, in the order of spec §6: folders, never touch, rules, daily
-/// agent, active work, categories, about.
+/// Settings: daily agent, active work, folders, never touch, rules,
+/// categories, about.
 struct SettingsPane: View {
     @Environment(AppModel.self) private var model
 
@@ -300,7 +300,7 @@ private struct AboutSection: View {
 }
 
 /// Where people can support the project. Shown only here and in the README,
-/// never in the menu bar or notifications (spec §6). Filled in once the
+/// never in the menu bar or notifications. Filled in once the
 /// accounts exist.
 enum SupportLinks {
     static let all: [(title: String, url: URL)] = []

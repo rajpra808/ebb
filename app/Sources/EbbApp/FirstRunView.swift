@@ -3,7 +3,7 @@ import EbbAppKit
 import ScanCore
 import SwiftUI
 
-/// First run: welcome, Full Disk Access, first scan (spec §6a "First run").
+/// First run: welcome, Full Disk Access, first scan.
 struct FirstRunView: View {
     @Environment(AppModel.self) private var model
     @Environment(Navigation.self) private var navigation
