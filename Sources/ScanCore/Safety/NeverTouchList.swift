@@ -157,7 +157,7 @@ extension NeverTouchList {
         path("~/.config/gh", "GitHub CLI credentials"),
         path("~/Library/Keychains", "keychains"),
 
-        // Ebb's own data, and Trash (Ebb never empties it).
+        // Ebb's own data, and the Trash: what's there is never suggested.
         path("~/Library/Application Support/Ebb", "Ebb's own settings"),
         path("~/.Trash", "Trash"),
 

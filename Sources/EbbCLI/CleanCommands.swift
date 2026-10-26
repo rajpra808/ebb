@@ -164,7 +164,39 @@ struct History: ParsableCommand {
         }
         print(Table(rows: rows, rightAligned: [2]).render(), terminator: "")
         print("\n  \(ByteCount.format(try history.bytesStillInTrash())) from Ebb cleans is still in the Trash. "
-            + "Ebb never empties it.")
+            + "Run `ebbctl empty-trash` to remove it for good; your own files in the Trash stay.")
+    }
+}
+
+struct EmptyTrash: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "empty-trash",
+        abstract: "Remove for good what Ebb moved to the Trash.",
+        discussion: "Only Ebb's own items are removed; anything else in your Trash stays. This can't be undone."
+    )
+
+    @Flag(name: .shortAndLong, help: "Don't ask for confirmation.")
+    var yes = false
+
+    func run() throws {
+        let options = ScanOptions.currentUser()
+        let home = options.canonicalized().home
+        let history = CleanHistory(fileURL: CleanHistory.defaultLocation(home: home))
+        let waiting = try history.bytesStillInTrash()
+        guard waiting > 0 else {
+            print("  Nothing from Ebb is waiting in the Trash.")
+            return
+        }
+        print("  \(ByteCount.format(waiting)) from Ebb cleans is in the Trash. Your own files there stay.")
+        guard yes || Clean.confirm("  Remove it for good? This can't be undone. [y/N] ") else {
+            print("  Nothing was removed.")
+            return
+        }
+        let cleaner = Cleaner(scanner: DiskScanner(catalog: try CategoryCatalog.builtIn(), options: options),
+                              history: history)
+        let report = try cleaner.emptyTrash()
+        print("  Removed \(plural(report.removedCount, "item")), freeing \(ByteCount.format(report.freedBytes)).")
+        for failure in report.failed { print("    \(failure)") }
     }
 }
 

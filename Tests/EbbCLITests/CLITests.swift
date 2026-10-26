@@ -264,6 +264,15 @@ struct CleanCommandTests {
     }
 }
 
+@Suite("CLI empty-trash")
+struct EmptyTrashCommandTests {
+    @Test("empty-trash parses, with -y")
+    func parses() throws {
+        let command = try #require(try Ebb.parseAsRoot(["empty-trash", "-y"]) as? EmptyTrash)
+        #expect(command.yes)
+    }
+}
+
 @Suite("CLI rule remove")
 struct RuleRemoveTests {
     @Test("rule remove parses its id")

@@ -1,7 +1,8 @@
 import Foundation
 
 /// Where cleared items go. Ebb only ever moves things to the Trash; it never
-/// deletes and never empties the Trash.
+/// deletes on its own. `Cleaner.emptyTrash` removes Ebb's own items from the
+/// Trash, and only when the user asks.
 public protocol TrashBin: Sendable {
     /// Moves `path` to the Trash and returns where it ended up.
     func moveToTrash(_ path: String) throws -> String
