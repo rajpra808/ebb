@@ -263,3 +263,13 @@ struct CleanCommandTests {
         #expect(!items.isEmpty)
     }
 }
+
+@Suite("CLI rule remove")
+struct RuleRemoveTests {
+    @Test("rule remove parses its id")
+    func parses() throws {
+        let remove = try #require(try Ebb.parseAsRoot(["rule", "remove", "d940aee9"]) as? RuleCommand.Remove)
+        #expect(remove.id == "d940aee9")
+        #expect(throws: (any Error).self) { try Ebb.parseAsRoot(["rule", "remove"]) }
+    }
+}

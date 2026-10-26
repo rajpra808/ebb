@@ -6,7 +6,7 @@ struct RuleCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "rule",
         abstract: "Manage custom rules in rules.json.",
-        subcommands: [Add.self, List.self]
+        subcommands: [Add.self, List.self, Remove.self]
     )
 
     struct Add: ParsableCommand {
@@ -149,6 +149,25 @@ struct RuleCommand: ParsableCommand {
             }
             var stderr = StandardError()
             for problem in file.problems { print("  note: \(problem)", to: &stderr) }
+        }
+    }
+}
+
+extension RuleCommand {
+    struct Remove: ParsableCommand {
+        static let configuration = CommandConfiguration(abstract: "Remove a custom rule by its id.")
+
+        @Argument(help: "The rule's id from `ebb rule list`.")
+        var id: String
+
+        mutating func run() throws {
+            let home = ScanOptions.currentUser().home
+            let store = RuleStore(fileURL: RuleStore.defaultLocation(home: home))
+            guard let rule = try store.load().rules.first(where: { $0.id == id }) else {
+                throw ValidationError("No rule with id \(id). See `ebb rule list`.")
+            }
+            try store.remove(id: id)
+            print("  Removed rule \(id) (\(rule.name)).")
         }
     }
 }
