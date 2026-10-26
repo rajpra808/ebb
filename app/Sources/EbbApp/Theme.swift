@@ -150,13 +150,17 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
-/// The grey secondary button.
+/// The grey secondary button. `compact` fits several in the menu bar panel.
 struct SecondaryButtonStyle: ButtonStyle {
+    var compact = false
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.body.weight(.medium))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 9)
+            .font(compact ? .callout.weight(.medium) : .body.weight(.medium))
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, compact ? 10 : 16)
+            .padding(.vertical, compact ? 6 : 9)
             .background(Color.primary.opacity(configuration.isPressed ? 0.12 : 0.07),
                         in: RoundedRectangle(cornerRadius: 9))
     }

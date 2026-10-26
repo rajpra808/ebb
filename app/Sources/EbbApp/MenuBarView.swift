@@ -123,7 +123,8 @@ struct MenuBarView: View {
         .padding(16)
     }
 
-    /// Always shown, scanning or not: scan, open the window, pause, quit.
+    /// Always shown, scanning or not: scan, open the window, pause, quit,
+    /// and what's waiting in the Trash.
     private var footer: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
@@ -132,26 +133,30 @@ struct MenuBarView: View {
                 } label: {
                     Label(model.isScanning ? "Scanning…" : "Scan now", systemImage: "arrow.clockwise")
                 }
-                .buttonStyle(SecondaryButtonStyle())
+                .buttonStyle(SecondaryButtonStyle(compact: true))
                 .disabled(model.isScanning)
                 Button {
                     openMainWindow(openWindow, navigation: navigation, pane: .overview)
                 } label: {
                     Label("Open Ebb", systemImage: "macwindow")
                 }
-                .buttonStyle(SecondaryButtonStyle())
+                .buttonStyle(SecondaryButtonStyle(compact: true))
                 Spacer()
-                if model.bytesInTrash > 0 && !model.isScanning {
+                pauseMenu
+            }
+            if model.bytesInTrash > 0 && !model.isScanning {
+                HStack(spacing: 8) {
+                    Image(systemName: "trash").foregroundStyle(.secondary)
+                    Text("\(ByteCount.format(model.bytesInTrash)) from Ebb is waiting in the Trash")
+                        .foregroundStyle(.secondary)
+                    Spacer()
                     EmptyTrashButton(compact: true)
                 }
-                pauseMenu
+                .font(.caption)
             }
             HStack {
                 if let paused = model.pauseDescription {
                     Label(paused, systemImage: "pause.circle").foregroundStyle(Theme.warning)
-                } else if model.bytesInTrash > 0 && !model.isScanning {
-                    Label("\(ByteCount.format(model.bytesInTrash)) from Ebb waiting in the Trash", systemImage: "trash")
-                        .foregroundStyle(.secondary)
                 } else if model.worthALookBytes > 0 && !model.isScanning {
                     Button("+ \(ByteCount.format(model.worthALookBytes)) worth a look") {
                         openMainWindow(openWindow, navigation: navigation, pane: .recommendations)

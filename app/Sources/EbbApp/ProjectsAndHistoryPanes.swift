@@ -192,10 +192,9 @@ struct EmptyTrashButton: View {
         Button {
             confirming = true
         } label: {
-            Label(compact ? "Empty \(ByteCount.format(model.bytesInTrash))" : "Empty Ebb's items",
-                  systemImage: "trash.slash")
+            Label(compact ? "Empty" : "Empty Ebb's items", systemImage: "trash.slash")
         }
-        .buttonStyle(SecondaryButtonStyle())
+        .buttonStyle(SecondaryButtonStyle(compact: compact))
         .disabled(model.bytesInTrash == 0)
         .confirmationDialog(
             "Remove \(ByteCount.format(model.bytesInTrash)) from the Trash for good?",
