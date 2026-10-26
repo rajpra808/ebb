@@ -39,7 +39,7 @@ struct RecommendationsPane: View {
             Button("Move to Trash") { Task { await model.cleanSelection(source: "review") } }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Each item is checked again first. Nothing is deleted; put anything back from History.")
+            Text(confirmMessage)
         }
     }
 
@@ -77,6 +77,14 @@ struct RecommendationsPane: View {
         }
     }
 
+    private var confirmMessage: String {
+        let commands = model.selectedToolCommands
+        let base = "Each item is checked again first and moved to the Trash; put anything back from History."
+        guard !commands.isEmpty else { return base }
+        return base + " Ebb will also run " + commands.joined(separator: ", ")
+            + ", which can't be put back (the tool downloads it again when needed)."
+    }
+
     private var confirmTitle: String {
         let totals = model.selectionTotals
         return "Move \(totals.count) item\(totals.count == 1 ? "" : "s") (\(ByteCount.format(totals.bytes))) to the Trash?"
@@ -95,7 +103,7 @@ private struct ItemRow: View {
             Toggle("", isOn: Binding(get: { model.selection.contains(item) }, set: { _ in model.selection.toggle(item) }))
                 .toggleStyle(.checkbox)
                 .labelsHidden()
-                .disabled(!item.isTrashable)
+                .disabled(!Selection.isSelectable(item))
             VStack(alignment: .leading, spacing: 3) {
                 (Text(presentation.title).fontWeight(.medium)
                     + Text(presentation.context.map { " in \($0)" } ?? "").foregroundColor(.secondary))
@@ -109,7 +117,9 @@ private struct ItemRow: View {
                     Text("To get it back: \(howTo)").font(.caption).foregroundStyle(Theme.accent)
                 }
                 if let command = item.clearCommand {
-                    Text("Cleared with `\(command)`; Ebb shows the command instead of running it.")
+                    Text(Selection.isSelectable(item)
+                         ? "Cleared by running `\(command)`. Not via the Trash, so it can't be put back."
+                         : "Cleared with `\(command)`. Install the tool to clear it from Ebb.")
                         .font(.caption).foregroundStyle(.secondary)
                         .textSelection(.enabled)
                 }

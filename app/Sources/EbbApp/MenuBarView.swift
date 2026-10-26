@@ -37,7 +37,7 @@ struct MenuBarView: View {
             Button("Move to Trash") { Task { await model.cleanSelection(source: "menu bar") } }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Nothing is deleted. You can put anything back from History.")
+            Text(confirmMessage)
         }
     }
 
@@ -188,6 +188,14 @@ struct MenuBarView: View {
         .menuStyle(.borderlessButton)
         .fixedSize()
         .help(model.pauseDescription == nil ? "Pause daily scans" : "Resume daily scans")
+    }
+
+    private var confirmMessage: String {
+        let commands = model.selectedToolCommands
+        let base = "Each item is checked again first and moved to the Trash; put anything back from History."
+        guard !commands.isEmpty else { return base }
+        return base + " Ebb will also run " + commands.joined(separator: ", ")
+            + ", which can't be put back (the tool downloads it again when needed)."
     }
 
     private var confirmTitle: String {

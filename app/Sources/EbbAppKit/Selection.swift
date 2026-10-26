@@ -1,11 +1,13 @@
+import EbbClean
 import Foundation
 import ScanCore
 
 /// Which items the user has ticked, and what that adds up to.
 ///
-/// Starts from the scan's pre-selection. Items that are cleared with a
-/// command (the pnpm store, Docker) can't be ticked: the app shows the
-/// command instead of running it.
+/// Starts from the scan's pre-selection. Items cleared with a tool's own
+/// command (Go modules, the pnpm store, Docker) can be ticked when Ebb is
+/// allowed to run that command and the tool is installed. They start
+/// unticked, because unlike the Trash they can't be put back.
 public struct Selection: Equatable, Sendable {
     public private(set) var paths: Set<String>
 
@@ -13,17 +15,22 @@ public struct Selection: Equatable, Sendable {
         paths = Set((result?.items ?? []).filter { $0.preselected && $0.isTrashable }.map(\.path))
     }
 
+    /// Whether the user can tick this item at all.
+    public static func isSelectable(_ item: Item) -> Bool {
+        item.isTrashable || ToolCommandRunner().canRun(item)
+    }
+
     public func contains(_ item: Item) -> Bool {
         paths.contains(item.path)
     }
 
     public mutating func toggle(_ item: Item) {
-        guard item.isTrashable else { return }
+        guard Self.isSelectable(item) else { return }
         if paths.contains(item.path) { paths.remove(item.path) } else { paths.insert(item.path) }
     }
 
     public mutating func set(_ items: [Item], selected: Bool) {
-        for item in items where item.isTrashable {
+        for item in items where Self.isSelectable(item) {
             if selected { paths.insert(item.path) } else { paths.remove(item.path) }
         }
     }

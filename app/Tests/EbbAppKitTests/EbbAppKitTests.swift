@@ -82,7 +82,7 @@ struct SelectionTests {
         item("/b/.venv", "python-venvs", 2_000, project: "/b"),
         item("/m/model", "local-models", 5_000, preselected: false, comesBack: .redownload),
         item("/d/copy.pdf", "duplicates", 1_000, preselected: false, comesBack: .no),
-        item("/s/store", "package-caches", 9_000, command: "pnpm store prune"),
+        item("/s/store", "package-caches", 9_000, command: "ollama rm llama3"),
     ])
     }
 
@@ -96,7 +96,7 @@ struct SelectionTests {
         #expect(totals.comesBack == 5_000)
     }
 
-    @Test("Toggling adds to the right comes-back bucket; command items can't be ticked")
+    @Test("Toggling adds to the right comes-back bucket; commands Ebb may not run can't be ticked")
     func toggling() {
         var selection = Selection(preselectedFrom: result)
         let items = result.items

@@ -279,7 +279,7 @@ struct BuildToolCategoryTests {
         )
         let candidate = Candidate(
             path: DockerCollector.buildCachePath, categoryID: "docker", comesBack: .yes(howTo: "rebuild"),
-            preselected: true, clearCommand: "docker builder prune --all --filter until=24h", isEstimated: true,
+            preselected: true, clearCommand: "docker builder prune --all --force --filter until=24h", isEstimated: true,
             precomputed: PrecomputedSize(allocatedBytes: 250_000_000, fileCount: 3,
                                          lastUsed: fixture.now.addingTimeInterval(-5 * 86_400), paths: [], isVirtual: true),
             describe: { _, _ in "" }

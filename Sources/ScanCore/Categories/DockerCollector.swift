@@ -38,14 +38,14 @@ struct DockerCollector: Sendable {
             let count = usage.danglingImages.count
             findings.candidates.append(candidate(
                 Self.danglingImagesPath, usage.danglingImages, source: "dangling images",
-                command: "docker image prune --filter until=24h",
+                command: "docker image prune --force --filter until=24h",
                 reason: "\(count) untagged image\(count == 1 ? "" : "s") no container uses" + note
             ))
         }
         if usage.buildCache.count > 0 {
             findings.candidates.append(candidate(
                 Self.buildCachePath, usage.buildCache, source: "build cache",
-                command: "docker builder prune --all --filter until=24h",
+                command: "docker builder prune --all --force --filter until=24h",
                 reason: "Build cache no build is using" + note
             ))
         }

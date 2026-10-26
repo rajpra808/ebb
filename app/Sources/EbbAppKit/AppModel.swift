@@ -66,7 +66,14 @@ public final class AppModel {
     /// Pre-selected bytes that need a command (pnpm store, Go modules,
     /// Docker) rather than a move to Trash. The app shows the command only.
     public var commandOnlyBytes: Int64 {
-        (result?.items ?? []).filter { $0.preselected && !$0.isTrashable }.reduce(0) { $0 + $1.allocatedBytes }
+        (result?.items ?? []).filter { $0.preselected && !$0.isTrashable && !Selection.isSelectable($0) }
+            .reduce(0) { $0 + $1.allocatedBytes }
+    }
+
+    /// Ticked items cleared by a tool's command, which can't be put back.
+    public var selectedToolCommands: [String] {
+        guard let result else { return [] }
+        return selection.items(in: result).filter { !$0.isTrashable }.compactMap(\.clearCommand)
     }
 
     public var selectionTotals: Selection.Totals {
@@ -130,13 +137,21 @@ public final class AppModel {
         defer { isCleaning = false }
 
         let cleaner = Cleaner(scanner: makeScanner(), history: cleanHistory, trash: trash)
+        // Tool caches are cleared by their own command, after the Trash moves.
+        let commands = await ToolCommandRunner().run(items.filter { !$0.isTrashable })
+        let ranOK = commands.filter(\.succeeded)
         do {
-            let report = try await cleaner.clean(items, source: source)
-            let moved = Set(report.moved.map(\.item.path))
+            let report = try await cleaner.clean(items.filter(\.isTrashable), source: source)
+            let moved = Set(report.moved.map(\.item.path) + ranOK.map(\.item.path))
             self.result = result.removingItems(at: moved)
             selection.remove(Array(moved))
             if let updated = self.result { try? store.save(updated) }
             notice = Self.describe(report)
+            if !commands.isEmpty {
+                let freed = ranOK.reduce(0) { $0 + $1.item.allocatedBytes }
+                notice = (notice ?? "") + " Ran \(count(ranOK.count, "tool command")) (\(ByteCount.format(freed)))."
+                if let failed = commands.first(where: { !$0.succeeded }) { notice = (notice ?? "") + " " + failed.detail + "." }
+            }
         } catch {
             notice = "Couldn't clean: \(error.localizedDescription)"
         }

@@ -277,3 +277,32 @@ struct CleanerTests {
         #expect(try fixture.history.load() == [record])
     }
 }
+
+@Suite("Tool commands")
+struct ToolCommandTests {
+    private func item(_ command: String?) -> Item {
+        Item(path: "/x", categoryID: "package-caches", allocatedBytes: 1, sharedBytes: 0, isEstimated: false,
+             fileCount: 1, lastUsed: nil, comesBack: .redownload, reason: "", preselected: true, projectPath: nil,
+             source: nil, ruleID: nil, clearCommand: command, packageManaged: true)
+    }
+
+    @Test("Only the exact allowed command lines are planned")
+    func allowlist() {
+        let runner = ToolCommandRunner()
+        for command in ["rm -rf ~", "go clean -modcache; rm -rf /", "go clean -cache", "ollama rm llama3",
+                        "xcrun simctl delete X", "pnpm store prune --force"] {
+            #expect(runner.plan(for: item(command)) == nil, "\(command)")
+        }
+        #expect(runner.plan(for: item(nil)) == nil)
+        #expect(ToolCommandRunner.allowed.contains(["go", "clean", "-modcache"]))
+        #expect(ToolCommandRunner.allowed.contains(["docker", "builder", "prune", "--all", "--force", "--filter", "until=24h"]))
+    }
+
+    @Test("Planned commands run the tool directly, without a shell")
+    func planShape() throws {
+        guard let plan = ToolCommandRunner().plan(for: item("go clean -modcache")) else { return } // go not installed
+        #expect(plan.executable.hasSuffix("/go"))
+        #expect(plan.arguments == ["clean", "-modcache"])
+        #expect(plan.display == "go clean -modcache")
+    }
+}
