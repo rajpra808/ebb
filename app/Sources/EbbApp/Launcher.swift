@@ -68,6 +68,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         UNUserNotificationCenter.current().delegate = self
     }
 
+    /// Opening Ebb again (from Applications, Spotlight or the Dock) shows
+    /// the window. On a crowded menu bar the item can end up behind the
+    /// notch, and this keeps Ebb reachable anyway.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { navigation?.openRequested = true }
+        return true
+    }
+
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         await MainActor.run {
             navigation?.pane = .recommendations
