@@ -15,6 +15,10 @@ public final class AppModel {
 
     public private(set) var result: ScanResult?
     public private(set) var scanState: ScanState = .idle
+    /// 0 to 1 while measuring, nil while the scan can't tell how far it is.
+    public private(set) var scanFraction: Double?
+    /// The scan's phase in a few words, e.g. "Checking projects".
+    public private(set) var scanPhase = ""
     public var selection = Selection(preselectedFrom: nil)
     public private(set) var history: [CleanRecord] = []
     public private(set) var bytesInTrash: Int64 = 0
@@ -96,12 +100,18 @@ public final class AppModel {
     public func scan() async {
         guard !isScanning else { return }
         scanState = .scanning("Starting")
+        scanPhase = "Starting"
+        scanFraction = nil
         var scanner = makeScanner()
         scanner.onProgress = { [weak self] progress in
             let text = ProgressText.describe(progress)
+            let phase = ProgressText.phase(progress)
+            let fraction = ProgressText.fraction(progress)
             Task { @MainActor in
                 guard let self, self.isScanning, let text else { return }
                 self.scanState = .scanning(text)
+                self.scanPhase = phase
+                self.scanFraction = fraction
             }
         }
         let fresh = await scanner.scan()
@@ -201,6 +211,22 @@ public final class AppModel {
         }
     }
 
+    /// Pauses daily scans for `days`, or until resumed when nil.
+    public func pauseDailyScans(days: Int?) {
+        settings.agent.pausedUntil = days.map { Date().addingTimeInterval(Double($0) * 86_400) } ?? .distantFuture
+    }
+
+    public func resumeDailyScans() {
+        settings.agent.pausedUntil = nil
+    }
+
+    /// "Paused until Thursday" or "Paused", for the menu bar.
+    public var pauseDescription: String? {
+        guard let until = settings.agent.pausedUntil, until > Date() else { return nil }
+        if until == .distantFuture { return "Daily scans paused" }
+        return "Daily scans paused until " + until.formatted(.dateTime.weekday(.wide).day().month(.abbreviated))
+    }
+
     /// Re-points the LaunchAgent at this copy of the app if it moved.
     public func repairAgentIfNeeded(executable: String) {
         let agent = LaunchAgent(home: home)
@@ -234,6 +260,32 @@ func count(_ number: Int, _ noun: String) -> String {
 
 /// What the scan is doing, in a few words, for the menu bar and window.
 public enum ProgressText {
+    /// The phase as a short title.
+    public static func phase(_ progress: ScanProgress) -> String {
+        switch progress {
+        case .findingProjects: return "Finding your projects"
+        case .checkingProjects: return "Checking which are active"
+        case .collecting: return "Looking at caches and tools"
+        case .applyingRules: return "Applying your rules"
+        case .measuring: return "Measuring what can go"
+        case .finished: return "Done"
+        }
+    }
+
+    /// How far along, where the scan knows: checking projects and measuring
+    /// have totals; finding projects doesn't.
+    public static func fraction(_ progress: ScanProgress) -> Double? {
+        switch progress {
+        case .findingProjects: return 0.08
+        case .checkingProjects(let checked, let total):
+            return total > 0 ? 0.1 + 0.25 * Double(checked) / Double(total) : 0.1
+        case .collecting, .applyingRules: return 0.4
+        case .measuring(let checked, let total, _):
+            return total > 0 ? 0.45 + 0.55 * Double(checked) / Double(total) : 0.45
+        case .finished: return 1
+        }
+    }
+
     public static func describe(_ progress: ScanProgress) -> String? {
         switch progress {
         case .findingProjects(let folders, let projects):

@@ -68,6 +68,20 @@ private struct DailyAgentSection: View {
                     + "and catches up after sleep.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            if let paused = model.pauseDescription {
+                HStack {
+                    Label(paused, systemImage: "pause.circle").foregroundStyle(Theme.warning)
+                    Spacer()
+                    Button("Resume") { model.resumeDailyScans() }
+                }
+            } else if model.settings.agent.isEnabled {
+                Menu("Pause daily scans") {
+                    Button("For a day") { model.pauseDailyScans(days: 1) }
+                    Button("For a week") { model.pauseDailyScans(days: 7) }
+                    Button("Until I resume") { model.pauseDailyScans(days: nil) }
+                }
+                .fixedSize()
+            }
             Picker("Notify when at least", selection: $model.settings.agent.notifyThresholdGB) {
                 ForEach([1.0, 2, 5, 10, 20], id: \.self) { Text("\(Int($0)) GB").tag($0) }
             }

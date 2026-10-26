@@ -14,13 +14,16 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 0) {
             header
             Divider()
-            if let result = model.result {
+            if model.isScanning {
+                ScanningView(compact: true)
+                    .padding(16)
+            } else if let result = model.result {
                 categories(result)
                 skippedNote(result)
                 Divider()
                 actions
             } else {
-                Text(model.isScanning ? "Scanning for the first time…" : "No scan yet.")
+                Text("No scan yet. Press Scan now to see what can go.")
                     .foregroundStyle(.secondary)
                     .padding(16)
             }
@@ -118,22 +121,60 @@ struct MenuBarView: View {
         .padding(16)
     }
 
+    /// Always shown, scanning or not: scan, open the window, pause, quit.
     private var footer: some View {
-        HStack {
-            if model.worthALookBytes > 0 {
-                Button("+ \(ByteCount.format(model.worthALookBytes)) worth a look") {
-                    openMainWindow(openWindow, navigation: navigation, pane: .recommendations)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Button {
+                    Task { await model.scan() }
+                } label: {
+                    Label(model.isScanning ? "Scanning…" : "Scan now", systemImage: "arrow.clockwise")
                 }
+                .buttonStyle(SecondaryButtonStyle())
+                .disabled(model.isScanning)
+                Button {
+                    openMainWindow(openWindow, navigation: navigation, pane: .overview)
+                } label: {
+                    Label("Open Ebb", systemImage: "macwindow")
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                Spacer()
+                pauseMenu
             }
-            Spacer()
-            Button("Scan now") { Task { await model.scan() } }.disabled(model.isScanning)
-            Button("Open Ebb") { openMainWindow(openWindow, navigation: navigation, pane: .overview) }
-            Button("Quit") { NSApp.terminate(nil) }
+            HStack {
+                if let paused = model.pauseDescription {
+                    Label(paused, systemImage: "pause.circle").foregroundStyle(Theme.warning)
+                } else if model.worthALookBytes > 0 && !model.isScanning {
+                    Button("+ \(ByteCount.format(model.worthALookBytes)) worth a look") {
+                        openMainWindow(openWindow, navigation: navigation, pane: .recommendations)
+                    }
+                    .buttonStyle(.link)
+                }
+                Spacer()
+                Button("Quit Ebb") { NSApp.terminate(nil) }.buttonStyle(.link).foregroundStyle(.secondary)
+            }
+            .font(.caption)
         }
-        .buttonStyle(.link)
-        .font(.caption)
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.vertical, 12)
+    }
+
+    /// Pause or resume the daily scans.
+    private var pauseMenu: some View {
+        Menu {
+            if model.pauseDescription != nil {
+                Button("Resume daily scans") { model.resumeDailyScans() }
+            } else {
+                Button("Pause for a day") { model.pauseDailyScans(days: 1) }
+                Button("Pause for a week") { model.pauseDailyScans(days: 7) }
+                Button("Pause until I resume") { model.pauseDailyScans(days: nil) }
+            }
+        } label: {
+            Image(systemName: model.pauseDescription == nil ? "pause.circle" : "play.circle")
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help(model.pauseDescription == nil ? "Pause daily scans" : "Resume daily scans")
     }
 
     private var confirmTitle: String {

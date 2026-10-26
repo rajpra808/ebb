@@ -163,12 +163,9 @@ struct FirstRunView: View {
         return VStack(alignment: .leading, spacing: 18) {
             Text(model.result == nil || model.isScanning ? "Scanning your Mac" : "Here's what Ebb found")
                 .font(.system(size: 24, weight: .bold))
-            if case .scanning(let what) = model.scanState {
-                HStack(spacing: 10) {
-                    ProgressView().controlSize(.small)
-                    Text(what).foregroundStyle(.secondary)
-                }
-                Text("The first scan takes a minute or so. Nothing is changed.").font(.caption).foregroundStyle(.secondary)
+            if model.isScanning {
+                ScanningView()
+                Text("The first scan takes a minute or so.").font(.caption).foregroundStyle(.secondary)
             } else if let result = model.result {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     SizeText(bytes: result.totals.safeToClearBytes, font: .system(size: 34, weight: .bold))
@@ -191,6 +188,12 @@ struct FirstRunView: View {
             }
         }
         .task {
+            // Daily scans are on unless the user unticks them below.
+            if !model.settings.completedFirstRun && !model.settings.agent.isEnabled,
+               let executable = Bundle.main.executablePath {
+                model.setAgentEnabled(true, executable: executable)
+                _ = await SystemNotifier.requestPermission()
+            }
             if model.result == nil || !Calendar.current.isDateInToday(model.result?.startedAt ?? .distantPast) {
                 await model.scan()
             }
