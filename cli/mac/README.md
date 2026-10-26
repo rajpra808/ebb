@@ -2,17 +2,31 @@
 
 macOS 14 or later. macOS is the primary platform.
 
-## Build and install
+## Install
+
+```
+curl -fsSL https://ebb.serveka.com/install.sh | sh
+```
+
+This installs Ebb.app and links `ebbctl` and `ebb` to the copy of the
+command inside the app (`Ebb.app/Contents/Helpers/ebb`). A release also has
+the command on its own: `ebb-cli-macos.tar.gz`.
+
+From source:
 
 ```
 swift build -c release
-install -m 755 .build/release/ebb /usr/local/bin/ebb    # or anywhere on your PATH
+install -m 755 .build/release/ebb /usr/local/bin/ebbctl    # or anywhere on your PATH
 ```
 
 The binary is self-contained: the category catalog is compiled in.
 
-A Homebrew cask and a signed, notarized build are planned for the app
-release.
+### `ebb` and MacTeX
+
+MacTeX installs its own `ebb` (an alias of `extractbb`) in
+`/Library/TeX/texbin`. Homebrew and `/usr/local/bin` usually come first on
+the PATH, but if `ebb` runs TeX's tool for you, use `ebbctl`; it's the same
+program. The install script never replaces an `ebb` that isn't Ebb's.
 
 ## Full Disk Access
 

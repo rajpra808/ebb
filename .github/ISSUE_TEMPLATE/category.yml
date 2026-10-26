@@ -1,0 +1,23 @@
+name: New category or tool
+description: Suggest a folder, cache or tool Ebb should know about.
+labels: [category]
+body:
+  - type: input
+    id: tool
+    attributes:
+      label: Tool
+      placeholder: "uv, Bazel, Unity, Android Studio..."
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where it keeps its data
+      description: Paths, and how big they get on your Mac.
+    validations:
+      required: true
+  - type: textarea
+    id: back
+    attributes:
+      label: Does it come back?
+      description: What recreates it (a command, the next build) and whether anything is lost.

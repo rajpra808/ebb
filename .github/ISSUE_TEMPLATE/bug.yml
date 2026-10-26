@@ -1,0 +1,29 @@
+name: Bug report
+description: Something Ebb did, or showed, that it shouldn't have.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If Ebb suggested something that wasn't safe to clear, that's the most important kind of bug. Please say what it was and why it mattered.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what Ebb did instead.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: The item or project involved
+      description: The relevant lines from `ebbctl scan --details` or `ebbctl active`. Remove anything private from paths.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Versions
+      description: "`ebbctl --version` and your macOS version"
+      placeholder: "0.2.0, macOS 15.7"
+    validations:
+      required: true

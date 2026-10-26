@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Safety problem
+    url: https://github.com/rajpra808/ebb/security/advisories/new
+    about: Ebb suggested or moved something it never should have. Please report it privately first.
