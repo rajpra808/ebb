@@ -2,7 +2,7 @@
 # Installs Ebb, the Mac disk cleanup agent: https://ebb.serveka.com
 #
 #   curl -fsSL https://ebb.serveka.com/install.sh | sh
-#   curl -fsSL https://ebb.serveka.com/install.sh | sh -s -- --uninstall
+#   curl -fsSL https://ebb.serveka.com/uninstall.sh | sh
 #
 # What it does, and nothing else:
 #   1. downloads the latest release of Ebb.zip from GitHub and checks its
@@ -55,6 +55,7 @@ quit_running_app() {
 uninstall() {
     purge=$1
     quit_running_app
+    [ "$purge" = 1 ] && { tccutil reset All com.serveka.ebb >/dev/null 2>&1 || true; }
     launchctl bootout "gui/$(id -u)/$AGENT_LABEL" >/dev/null 2>&1 || true
     rm -f "$HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
     for dir in ${EBB_APP_DIR:-/Applications "$HOME/Applications"}; do
@@ -69,8 +70,14 @@ uninstall() {
         done
     done
     if [ "$purge" = 1 ]; then
-        rm -rf "$HOME/Library/Application Support/Ebb" "$HOME/Library/Logs/Ebb"
-        say "Removed Ebb's settings, rules and history."
+        # Full Disk Access and folder permissions, while the app id is known.
+        tccutil reset All com.serveka.ebb >/dev/null 2>&1 || true
+        defaults delete com.serveka.ebb >/dev/null 2>&1 || true
+        rm -rf "$HOME/Library/Application Support/Ebb" "$HOME/Library/Logs/Ebb" \
+            "$HOME/Library/Preferences/com.serveka.ebb.plist" \
+            "$HOME/Library/Saved Application State/com.serveka.ebb.savedState" \
+            "$HOME/Library/Caches/com.serveka.ebb" "$HOME/Library/HTTPStorages/com.serveka.ebb"
+        say "Removed Ebb's settings, rules, history and preferences, and reset its permissions."
     else
         say "Kept your settings and history in ~/Library/Application Support/Ebb (use --purge to remove them)."
     fi
@@ -133,7 +140,7 @@ install() {
 }
 
 case "${1:-}" in
-    --uninstall) [ "${2:-}" = "--purge" ] && uninstall 1 || uninstall 0 ;;
+    --uninstall) if [ "${2:-}" = "--purge" ]; then uninstall 1; else uninstall 0; fi ;;
     "") install ;;
     *) fail "unknown option $1 (use --uninstall, optionally with --purge)" ;;
 esac

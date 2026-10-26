@@ -56,9 +56,9 @@ struct PresentationTests {
     @Test("Safe-to-clear line says honestly how items come back")
     func safeToClearDetail() {
         #expect(SafeToClearText.detail(for: []) == "0 items")
-        #expect(SafeToClearText.detail(for: [item("/a", "x", 1)]) == "1 item · all come back")
+        #expect(SafeToClearText.detail(for: [item("/a", "x", 1)]) == "1 item · all regenerate")
         #expect(SafeToClearText.detail(for: [item("/a", "x", 1), item("/b", "y", 1, comesBack: .redownload)])
-            == "2 items · 1 come back, 1 re-download")
+            == "2 items · 1 regenerate, 1 re-download")
     }
 
     @Test("Dates read as today, yesterday or a short date")

@@ -37,8 +37,8 @@ Tests: `../scripts/test.sh` (or `swift test` with Xcode installed).
 - **Overview:** free space, safe to clear, worth a look, freed this month,
   top recommendations.
 - **Recommendations:** every item with a checkbox, its path, why it's safe
-  and whether it comes back; a side panel with the selected total split by
-  comes back / re-download / gone for good.
+  and whether it regenerates; a side panel with the selected total split by
+  regenerates / re-download / gone for good.
 - **Active projects:** each protected project and the signals behind it.
 - **History:** every clean, with Put back per item or for the whole clean,
   and how much from Ebb cleans still sits in the Trash.

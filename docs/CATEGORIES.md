@@ -7,7 +7,7 @@ which is compiled into the binary. Each category has a stable `id` and a
 
 ## Implemented
 
-| # | id | Finds | Rule | Comes back | Pre-selected |
+| # | id | Finds | Rule | Regenerates | Pre-selected |
 |---|---|---|---|---|---|
 | 2 | `claude-code-history` | Chats in `~/.claude/projects`, `~/.claude/shell-snapshots`, `~/.claude/todos` | Older than 30 days, or your `cleanupPeriodDays` if longer | no | no |
 | 3 | `agent-history` | Codex day folders in `~/.codex/sessions`, Gemini CLI `tmp` and `history`, Cursor `workspaceStorage` | Older than 30 days | no | no |

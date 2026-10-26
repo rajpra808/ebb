@@ -60,7 +60,7 @@ public struct Selection: Equatable, Sendable {
 /// The filter above the Recommendations list.
 public enum RecommendationFilter: String, CaseIterable, Sendable, Identifiable {
     case all = "All"
-    case comesBack = "Comes back"
+    case comesBack = "Regenerates"
     case needsALook = "Needs a look"
 
     public var id: String { rawValue }

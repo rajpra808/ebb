@@ -92,11 +92,11 @@ curl -fsSL https://ebb.serveka.com/install.sh | sh</pre>
     <section id="uninstall">
       <h2>Update and uninstall</h2>
       <p>Run the install command again to update; it replaces the app and keeps your settings.</p>
-      <pre><span class="c"># remove the app, the commands and the daily agent; keep settings and history</span>
-curl -fsSL https://ebb.serveka.com/install.sh | sh -s -- --uninstall
+      <pre><span class="c"># remove everything: app, commands, daily agent, settings, history, permissions</span>
+curl -fsSL https://ebb.serveka.com/uninstall.sh | sh
 
-<span class="c"># also remove settings, rules and history</span>
-curl -fsSL https://ebb.serveka.com/install.sh | sh -s -- --uninstall --purge</pre>
+<span class="c"># remove the app but keep settings, rules and history for later</span>
+curl -fsSL https://ebb.serveka.com/uninstall.sh | sh -s -- --keep-data</pre>
       <p>Nothing Ebb moved to the Trash is touched by uninstalling.</p>
     </section>
 
@@ -116,7 +116,7 @@ curl -fsSL https://ebb.serveka.com/install.sh | sh -s -- --uninstall --purge</pr
       <h2>Menu bar panel</h2>
       <p>The wave icon in the menu bar shows how much is safe to clear. Click it for the panel:</p>
       <ul>
-        <li>the total, and the biggest categories with whether they come back;</li>
+        <li>the total, and the biggest categories with whether they regenerate;</li>
         <li>how many active projects were skipped;</li>
         <li><strong>Review</strong> opens the window; <strong>Move … to Trash</strong> clears the pre-selected items after asking;</li>
         <li><strong>Scan now</strong>, <strong>Open Ebb</strong> and <strong>Quit</strong> at the bottom.</li>
@@ -128,12 +128,12 @@ curl -fsSL https://ebb.serveka.com/install.sh | sh -s -- --uninstall --purge</pr
       <table>
         <tr><th>Pane</th><th>What it's for</th></tr>
         <tr><td>Overview</td><td>Free space, safe to clear, worth a look, freed this month, and the top recommendations.</td></tr>
-        <tr><td>Recommendations</td><td>Every item with a checkbox, its path, why it's safe and whether it comes back. Filter by <em>Comes back</em> or <em>Needs a look</em>. The side panel shows the selected total and the Move to Trash button.</td></tr>
+        <tr><td>Recommendations</td><td>Every item with a checkbox, its path, why it's safe and whether it regenerates. Filter by <em>Regenerates</em> or <em>Needs a look</em>. The side panel shows the selected total and the Move to Trash button.</td></tr>
         <tr><td>Active projects</td><td>Every project Ebb is protecting, with the signals behind it, and Always keep.</td></tr>
         <tr><td>History</td><td>Every clean, with Put back, and how much from Ebb cleans is still in the Trash.</td></tr>
         <tr><td>Settings</td><td>See <a href="#settings">Settings</a>.</td></tr>
       </table>
-      <p><strong>Pre-selected</strong> items come back on their own (reinstall, rebuild, refill). Items that can't come back, like old AI chats or duplicates, are listed but never pre-selected. Items cleared by a tool's own command, like the pnpm store, show the command; Ebb doesn't run it.</p>
+      <p><strong>Pre-selected</strong> items regenerate on their own (reinstall, rebuild, refill). Items that can't come back, like old AI chats or duplicates, are listed but never pre-selected. Items cleared by a tool's own command, like the pnpm store, show the command; Ebb doesn't run it.</p>
     </section>
 
     <section id="keep">

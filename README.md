@@ -33,7 +33,7 @@
 <td width="42%" align="center"><img src="docs/assets/menubar.png" alt="The menu bar popover: 6.7 GB can be cleared safely, with Review and Move to Trash." width="340"></td>
 </tr>
 <tr>
-<td><sub>A real <code>ebb scan</code> on the author's Mac: 16.0 GB that comes back on its own, with 35 projects in active use left completely alone.</sub></td>
+<td><sub>A real <code>ebb scan</code> on the author's Mac: 16.0 GB that regenerates on its own, with 35 projects in active use left completely alone.</sub></td>
 <td align="center"><sub>The menu bar, once a day. Nothing moves until you click.</sub></td>
 </tr>
 </table>
@@ -52,8 +52,11 @@ It's [a short script](landing/install.sh); read it first if you like.
 > Ebb isn't notarized by Apple yet. Downloads with `curl` aren't flagged by macOS, so the app opens normally.
 > If you download `Ebb.zip` in a browser instead, right-click **Ebb.app** and choose **Open** the first time.
 
-Requires macOS 14 or later, on Apple silicon or Intel. To remove it:
-`curl -fsSL https://ebb.serveka.com/install.sh | sh -s -- --uninstall` (add `--purge` to drop settings and history).
+Requires macOS 14 or later, on Apple silicon or Intel. To remove it completely, including settings and permissions:
+
+```sh
+curl -fsSL https://ebb.serveka.com/uninstall.sh | sh
+```
 
 ## Why
 
@@ -64,7 +67,7 @@ General cleaners don't know developer folders, and one scary "Clean" button isn'
 |---|---|
 | **Runs by itself** | A daily agent scans when the Mac is idle and sends one notification, only when at least 2 GB can go. |
 | **Knows your active work** | Git, edits, Claude Code and Codex sessions, running dev servers and editor recents keep a project off limits. |
-| **Explains every item** | What it is, its size on disk, whether it comes back, and why it's safe. |
+| **Explains every item** | What it is, its size on disk, whether it regenerates, and why it's safe. |
 | **Undoable** | Cleaning moves to the Trash and is logged. Put back one item or a whole clean. |
 | **AI-era aware** | Old agent chats, unused local models and Cursor workspace storage, never pre-selected. |
 
@@ -75,7 +78,7 @@ remember, and it skips the projects you're in the middle of.
 ## See it
 
 <table>
-<tr><td colspan="2"><img src="docs/assets/recommendations.png" alt="Recommendations: every item with a checkbox, its path, why it's safe and whether it comes back."></td></tr>
+<tr><td colspan="2"><img src="docs/assets/recommendations.png" alt="Recommendations: every item with a checkbox, its path, why it's safe and whether it regenerates."></td></tr>
 <tr>
 <td width="50%"><img src="docs/assets/active.png" alt="Active projects and the signals that protect each one."></td>
 <td width="50%"><img src="docs/assets/history.png" alt="History: every clean, with Put all back."></td>
@@ -106,7 +109,7 @@ A project is any folder with a marker (`.git`, `package.json`, `pyproject.toml`,
 
 ## What it can clear
 
-| Category | Examples | Comes back | Rule | Pre-selected |
+| Category | Examples | Regenerates | Rule | Pre-selected |
 |---|---|:---:|---|:---:|
 | Node / JS leftovers | `node_modules`, `.next`, `.turbo`, `dist`, `build` | ✅ reinstall | Project inactive | ✓ |
 | Python virtual envs | `.venv`, `venv` with `pyvenv.cfg` | ✅ `pip install` | Project inactive | ✓ |

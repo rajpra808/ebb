@@ -47,7 +47,7 @@ struct Report {
                 [
                     (item.isEstimated ? "~" : "") + ByteCount.format(item.allocatedBytes),
                     abbreviate(item.path),
-                    "comes back: \(item.comesBack.label)",
+                    "\(item.comesBack.badge)",
                     item.reason,
                 ]
             }

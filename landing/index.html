@@ -99,9 +99,9 @@
           <div class="bar"><i style="flex:3.1;background:#0E5E6F"></i><i style="flex:1.7;background:#3B8F9A"></i><i style="flex:1.4;background:#8FC1C9"></i></div>
         </div>
         <div class="items">
-          <div class="it"><i style="background:#0E5E6F"></i><span>node_modules<small>3 projects inactive 30+ days</small></span><em>Comes back</em><b>3.1 GB</b></div>
-          <div class="it"><i style="background:#3B8F9A"></i><span>Docker build cache<small>Not used by any container</small></span><em>Comes back</em><b>1.7 GB</b></div>
-          <div class="it"><i style="background:#8FC1C9"></i><span>Package caches<small>npm, pip, Homebrew</small></span><em>Comes back</em><b>1.4 GB</b></div>
+          <div class="it"><i style="background:#0E5E6F"></i><span>node_modules<small>3 projects inactive 30+ days</small></span><em>Regenerates</em><b>3.1 GB</b></div>
+          <div class="it"><i style="background:#3B8F9A"></i><span>Docker build cache<small>Not used by any container</small></span><em>Regenerates</em><b>1.7 GB</b></div>
+          <div class="it"><i style="background:#8FC1C9"></i><span>Package caches<small>npm, pip, Homebrew</small></span><em>Regenerates</em><b>1.4 GB</b></div>
         </div>
         <div class="safe">⛨ <span><b>4 active projects skipped</b> · edits, git or agent sessions</span></div>
         <div class="acts"><span>Review</span><span class="go" id="go">Move 6.2 GB to Trash</span></div>
@@ -137,7 +137,7 @@
     <div class="steps">
       <div class="step reveal"><div class="n">1</div><h3>It scans every day</h3><p>Quietly, when your Mac is idle and on power. It only reads sizes and dates; nothing is changed.</p></div>
       <div class="step reveal"><div class="n">2</div><h3>You get one notification</h3><p>Only when at least 2 GB can go, and never more than once a day.</p><div class="quote">6.2 GB can be cleared safely: 3 inactive node_modules, Docker build cache</div></div>
-      <div class="step reveal"><div class="n">3</div><h3>Click, review, done</h3><p>The panel shows what it found and whether it comes back. Press Move to Trash. Changed your mind? Put it back from History.</p></div>
+      <div class="step reveal"><div class="n">3</div><h3>Click, review, done</h3><p>The panel shows what it found and whether it regenerates. Press Move to Trash. Changed your mind? Put it back from History.</p></div>
     </div>
   </div>
 </section>
@@ -177,10 +177,10 @@
       <div class="feature reveal">
         <span class="label l-what">What</span><h3>What it finds</h3>
         <ul>
-          <li><span style="text-align:left;color:var(--ink)"><code>node_modules</code>, <code>.next</code>, <code>.turbo</code>, <code>dist</code></span><span class="pill y">Comes back</span></li>
-          <li><span style="text-align:left;color:var(--ink)">Python <code>.venv</code>, Rust <code>target</code>, Swift <code>.build</code>, Gradle</span><span class="pill y">Comes back</span></li>
-          <li><span style="text-align:left;color:var(--ink)">npm, pnpm, Yarn, Bun, pip, Homebrew, Go caches</span><span class="pill y">Comes back</span></li>
-          <li><span style="text-align:left;color:var(--ink)">Xcode DerivedData, simulators · Docker build cache</span><span class="pill y">Comes back</span></li>
+          <li><span style="text-align:left;color:var(--ink)"><code>node_modules</code>, <code>.next</code>, <code>.turbo</code>, <code>dist</code></span><span class="pill y">Regenerates</span></li>
+          <li><span style="text-align:left;color:var(--ink)">Python <code>.venv</code>, Rust <code>target</code>, Swift <code>.build</code>, Gradle</span><span class="pill y">Regenerates</span></li>
+          <li><span style="text-align:left;color:var(--ink)">npm, pnpm, Yarn, Bun, pip, Homebrew, Go caches</span><span class="pill y">Regenerates</span></li>
+          <li><span style="text-align:left;color:var(--ink)">Xcode DerivedData, simulators · Docker build cache</span><span class="pill y">Regenerates</span></li>
           <li><span style="text-align:left;color:var(--ink)">Old installers, temp files, local AI models</span><span class="pill r">Re-download</span></li>
           <li><span style="text-align:left;color:var(--ink)">Old Claude Code, Codex, Cursor chats · duplicates</span><span class="pill n">Never pre-selected</span></li>
         </ul>
@@ -268,7 +268,7 @@
       <details><summary>Doesn't it all just come back?</summary><p>Caches refill when a tool needs them, and Ebb says so for every item. Most of the space is from projects you stopped opening, which only comes back if you build them again.</p></details>
       <details><summary>Why does it ask for Full Disk Access?</summary><p>macOS hides parts of ~/Library and some tool folders without it. Ebb still works without it and tells you what it couldn't see.</p></details>
       <details><summary>Is it notarized?</summary><p>Not yet. The install script downloads with curl, which macOS doesn't flag, and verifies the checksum and signature. If you download the zip in a browser, right-click Ebb and choose Open the first time.</p></details>
-      <details><summary>How do I uninstall it?</summary><p><code>curl -fsSL https://ebb.serveka.com/install.sh | sh -s -- --uninstall</code> removes the app, the commands and the daily agent.</p></details>
+      <details><summary>How do I uninstall it?</summary><p><code>curl -fsSL https://ebb.serveka.com/uninstall.sh | sh</code> removes the app, the commands, the daily agent, its settings and its permissions. Add <code>-s -- --keep-data</code> to keep settings and history.</p></details>
     </div>
   </div>
 </section>

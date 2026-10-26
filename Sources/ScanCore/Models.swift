@@ -15,6 +15,17 @@ public enum ComesBack: Equatable, Sendable {
     /// The question doesn't apply (info-only categories).
     case notApplicable
 
+    /// How the app and the CLI show it: "regenerates", "re-download",
+    /// "gone for good".
+    public var badge: String {
+        switch self {
+        case .yes: return "regenerates"
+        case .redownload: return "re-download"
+        case .no: return "gone for good"
+        case .notApplicable: return "n/a"
+        }
+    }
+
     public var label: String {
         switch self {
         case .yes: return "yes"

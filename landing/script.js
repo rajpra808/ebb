@@ -82,7 +82,7 @@ $$(".reveal").forEach((element) => revealer.observe(element));
       notice.classList.remove("show");
       item.classList.add("on");
       panel.classList.add("show");
-      say(2, "Click it: what's safe, and whether it comes back");
+      say(2, "Click it: what's safe, and whether it regenerates");
       await wait(2400);
       pointAt(go, 0.5, 0.5);
       await wait(1100);

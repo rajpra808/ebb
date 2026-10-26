@@ -13,7 +13,7 @@ public struct ItemPresentation: Equatable, Sendable {
     public let badge: Badge
 
     public enum Badge: String, Equatable, Sendable {
-        case comesBack = "Comes back"
+        case comesBack = "Regenerates"
         case redownload = "Re-download"
         case goneForGood = "Gone for good"
         case notApplicable = "Info"
@@ -114,7 +114,7 @@ public enum SafeToClearText {
         let total = "\(items.count) item\(items.count == 1 ? "" : "s")"
         guard !items.isEmpty else { return total }
         let comeBack = items.filter { if case .yes = $0.comesBack { return true } else { return false } }.count
-        if comeBack == items.count { return total + " · all come back" }
-        return total + " · \(comeBack) come back, \(items.count - comeBack) re-download"
+        if comeBack == items.count { return total + " · all regenerate" }
+        return total + " · \(comeBack) regenerate, \(items.count - comeBack) re-download"
     }
 }

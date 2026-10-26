@@ -16,7 +16,7 @@ struct RecommendationsPane: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     PaneHeader(title: "Recommendations",
-                               subtitle: "Every item says what it is, whether it comes back, and why it's safe.")
+                               subtitle: "Every item says what it is, whether it regenerates, and why it's safe.")
                     NoticeBar()
                     filterBar
                     if let result = model.result {
@@ -106,7 +106,7 @@ private struct ItemRow: View {
                 }
                 Text(item.reason).font(.caption)
                 if case .yes(let howTo) = item.comesBack {
-                    Text("Comes back: \(howTo)").font(.caption).foregroundStyle(Theme.accent)
+                    Text("To get it back: \(howTo)").font(.caption).foregroundStyle(Theme.accent)
                 }
                 if let command = item.clearCommand {
                     Text("Cleared with `\(command)`; Ebb shows the command instead of running it.")
@@ -150,7 +150,7 @@ private struct SelectionPanel: View {
                 Text("\(totals.count) item\(totals.count == 1 ? "" : "s")").foregroundStyle(.secondary)
             }
             VStack(spacing: 6) {
-                breakdown("Comes back", totals.comesBack, Theme.accent)
+                breakdown("Regenerates", totals.comesBack, Theme.accent)
                 breakdown("Re-download", totals.redownload, .gray)
                 breakdown("Gone for good", totals.goneForGood, Theme.warning)
             }
