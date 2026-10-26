@@ -34,8 +34,15 @@ public struct EbbSettings: Codable, Equatable, Sendable {
         /// Picked at random when the agent is first turned on, so Macs don't
         /// all scan at the same minute.
         public var earliestMinuteOfDay: Int?
+        /// Daily scans are paused until this date. `distantFuture` pauses
+        /// them until the user resumes.
+        public var pausedUntil: Date?
 
         public init() {}
+
+        public func isPaused(at date: Date) -> Bool {
+            pausedUntil.map { $0 > date } ?? false
+        }
 
         public init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -46,6 +53,7 @@ public struct EbbSettings: Codable, Equatable, Sendable {
             minimumBatteryPercent = try container.decodeIfPresent(Int.self, forKey: .minimumBatteryPercent)
                 ?? defaults.minimumBatteryPercent
             earliestMinuteOfDay = try container.decodeIfPresent(Int.self, forKey: .earliestMinuteOfDay)
+            pausedUntil = try container.decodeIfPresent(Date.self, forKey: .pausedUntil)
         }
     }
 

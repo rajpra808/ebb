@@ -45,6 +45,7 @@ public enum AgentPolicy {
         calendar: Calendar = .current
     ) -> Decision {
         guard settings.agent.isEnabled else { return .wait("the daily agent is off") }
+        if settings.agent.isPaused(at: now) { return .wait("daily scans are paused") }
         if let last = state.lastScanAt, calendar.isDate(last, inSameDayAs: now) {
             return .wait("already scanned today")
         }

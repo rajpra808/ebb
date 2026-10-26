@@ -69,6 +69,13 @@ struct AgentTests {
             == .wait("on battery at 20%"))
         #expect(decide(at(15), AgentState(), nil, FakeConditions(onAdapter: false, battery: 60)) == .scan)
         #expect(decide(at(15), AgentState(), nil, FakeConditions(idle: 30)) == .wait("the Mac is in use"))
+
+        var paused = enabled
+        paused.agent.pausedUntil = at(9, day: 27)
+        #expect(decide(at(15), AgentState(), paused) == .wait("daily scans are paused"))
+        #expect(decide(at(15, day: 27), AgentState(), paused) == .scan, "the pause ran out")
+        paused.agent.pausedUntil = .distantFuture
+        #expect(decide(at(15, day: 30), AgentState(), paused) == .wait("daily scans are paused"))
     }
 
     private func result(bytes: Int64) -> ScanResult {
