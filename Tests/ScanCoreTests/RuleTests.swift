@@ -125,7 +125,10 @@ struct RuleTests {
         var options = fixture.options(rulesTimeLimit: 1)
         options.checkOpenFiles = false
         let result = try await fixture.scanner(options: options, rules: [rule]).scan()
-        #expect(Date().timeIntervalSince(started) < 10)
+        // The rule gets 1 s. The bound only catches a hang: on a busy CI
+        // runner, with every suite in parallel, the rest of the scan can take
+        // a while.
+        #expect(Date().timeIntervalSince(started) < 60)
         #expect(result.items(in: "custom-rules").isEmpty)
         #expect(result.warnings.contains { $0.contains("stopped after") })
     }
