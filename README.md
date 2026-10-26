@@ -18,6 +18,7 @@
 
 <p align="center">
   <a href="https://ebb.serveka.com"><b>Website</b></a> ·
+  <a href="https://ebb.serveka.com/docs/"><b>Docs</b></a> ·
   <a href="#install"><b>Install</b></a> ·
   <a href="#how-ebb-decides-what-youre-working-on"><b>How it decides</b></a> ·
   <a href="#safety-promises"><b>Safety</b></a> ·

@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Docs · Ebb, automatic Mac cleanup for developers</title>
+  <meta name="description" content="How to install Ebb, use the menu bar app and notifications, run the ebbctl command line tool, and configure settings, custom rules and categories.">
+  <link rel="canonical" href="https://ebb.serveka.com/docs/">
+  <link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#F7F1E8">
+  <meta property="og:title" content="Ebb docs">
+  <meta property="og:description" content="Install, use, the command line and configuration.">
+  <meta property="og:image" content="https://ebb.serveka.com/assets/og.png">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../docs.css">
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap">
+    <a class="brand" href="../"><img src="../assets/icon.svg" alt="">Ebb</a>
+    <div class="links">
+      <a href="../#how">How it works</a>
+      <a href="../#features">Features</a>
+      <a href="./" style="color:var(--ink);font-weight:650">Docs</a>
+      <a class="btn" href="https://github.com/rajpra808/ebb">★ Star on GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap docs">
+  <aside id="toc">
+    <h4>Start</h4>
+    <a href="#install">Install</a>
+    <a href="#first-run">First run</a>
+    <a href="#uninstall">Update and uninstall</a>
+    <h4>Use it</h4>
+    <a href="#daily">The daily notification</a>
+    <a href="#menu-bar">Menu bar panel</a>
+    <a href="#window">The window</a>
+    <a href="#keep">Always keep</a>
+    <a href="#undo">History and put back</a>
+    <h4>Command line</h4>
+    <a href="#cli">Overview</a>
+    <a href="#cmd-scan">scan</a>
+    <a href="#cmd-clean">clean</a>
+    <a href="#cmd-active">active</a>
+    <a href="#cmd-history">history and undo</a>
+    <a href="#cmd-rule">rule</a>
+    <h4>Configure</h4>
+    <a href="#settings">Settings</a>
+    <a href="#rules">Custom rules</a>
+    <a href="#files">Files Ebb keeps</a>
+    <h4>Reference</h4>
+    <a href="#decides">How Ebb decides</a>
+    <a href="#categories">Categories</a>
+    <a href="#never">Never touched</a>
+    <a href="#trouble">Troubleshooting</a>
+  </aside>
+
+  <main class="doc">
+    <div class="intro">
+      <div class="kicker">Docs</div>
+      <h1>Using Ebb</h1>
+      <p>Install it once, then mostly forget it: Ebb scans every day and tells you when there's something worth clearing. This page covers the app, the <code>ebbctl</code> command, and every setting.</p>
+    </div>
+
+    <section id="install">
+      <h2>Install</h2>
+      <pre><span class="c"># macOS 14 or later, Apple silicon or Intel</span>
+curl -fsSL https://ebb.serveka.com/install.sh | sh</pre>
+      <p>The script downloads the latest <a href="https://github.com/rajpra808/ebb/releases/latest">GitHub release</a>, checks its SHA-256 checksum and code signature, and then:</p>
+      <ul>
+        <li>puts <strong>Ebb.app</strong> in <code>/Applications</code> (or <code>~/Applications</code> if that isn't writable);</li>
+        <li>links the <code>ebbctl</code> and <code>ebb</code> commands into <code>/usr/local/bin</code> (or <code>~/.local/bin</code>);</li>
+        <li>opens Ebb.</li>
+      </ul>
+      <div class="note"><b>Why ebbctl?</b> MacTeX ships its own command called <code>ebb</code>. The installer never replaces it, and <code>ebbctl</code> is always Ebb. Everywhere below, <code>ebb</code> and <code>ebbctl</code> are the same program.</div>
+      <h3>Without the script</h3>
+      <p>Download <code>Ebb.zip</code> from the <a href="https://github.com/rajpra808/ebb/releases/latest">latest release</a> and drag Ebb.app to Applications. Ebb isn't notarized yet, so the first time, right-click Ebb.app and choose <strong>Open</strong>. To build from source, see the <a href="https://github.com/rajpra808/ebb#build-from-source">README</a>.</p>
+    </section>
+
+    <section id="first-run">
+      <h2>First run</h2>
+      <ol>
+        <li><strong>Welcome.</strong> What Ebb does and what it promises not to do.</li>
+        <li><strong>Full Disk Access.</strong> macOS hides parts of <code>~/Library</code> and some tool folders from apps. Click <strong>Open System Settings</strong>, find Ebb under Privacy &amp; Security › Full Disk Access, and switch it on. Ebb notices and carries on by itself. You can also choose <strong>Scan without it</strong>; Ebb then skips what it can't see.</li>
+        <li><strong>First scan.</strong> About a minute, read-only. At the end, switch on <strong>Scan once a day</strong> to get the daily notification, and allow notifications when macOS asks.</li>
+      </ol>
+    </section>
+
+    <section id="uninstall">
+      <h2>Update and uninstall</h2>
+      <p>Run the install command again to update; it replaces the app and keeps your settings.</p>
+      <pre><span class="c"># remove the app, the commands and the daily agent; keep settings and history</span>
+curl -fsSL https://ebb.serveka.com/install.sh | sh -s -- --uninstall
+
+<span class="c"># also remove settings, rules and history</span>
+curl -fsSL https://ebb.serveka.com/install.sh | sh -s -- --uninstall --purge</pre>
+      <p>Nothing Ebb moved to the Trash is touched by uninstalling.</p>
+    </section>
+
+    <section id="daily">
+      <h2>The daily notification</h2>
+      <p>With <strong>Scan once a day</strong> on, Ebb checks every hour whether today's scan is due. It scans once a day:</p>
+      <ul>
+        <li>after a start time picked at random between 10:00 and 18:00 when you turn the agent on;</li>
+        <li>only once the Mac has been idle for two minutes;</li>
+        <li>on power, or on battery above 30% (you can change the limit);</li>
+        <li>and it catches up after the Mac slept through the start time.</li>
+      </ul>
+      <p>It notifies you only when at least 2 GB can be cleared, the amount grew since the last notification (or you cleaned since), and it hasn't notified you today. Click the notification to open the review screen. The scan never cleans anything.</p>
+    </section>
+
+    <section id="menu-bar">
+      <h2>Menu bar panel</h2>
+      <p>The wave icon in the menu bar shows how much is safe to clear. Click it for the panel:</p>
+      <ul>
+        <li>the total, and the biggest categories with whether they come back;</li>
+        <li>how many active projects were skipped;</li>
+        <li><strong>Review</strong> opens the window; <strong>Move … to Trash</strong> clears the pre-selected items after asking;</li>
+        <li><strong>Scan now</strong>, <strong>Open Ebb</strong> and <strong>Quit</strong> at the bottom.</li>
+      </ul>
+    </section>
+
+    <section id="window">
+      <h2>The window</h2>
+      <table>
+        <tr><th>Pane</th><th>What it's for</th></tr>
+        <tr><td>Overview</td><td>Free space, safe to clear, worth a look, freed this month, and the top recommendations.</td></tr>
+        <tr><td>Recommendations</td><td>Every item with a checkbox, its path, why it's safe and whether it comes back. Filter by <em>Comes back</em> or <em>Needs a look</em>. The side panel shows the selected total and the Move to Trash button.</td></tr>
+        <tr><td>Active projects</td><td>Every project Ebb is protecting, with the signals behind it, and Always keep.</td></tr>
+        <tr><td>History</td><td>Every clean, with Put back, and how much from Ebb cleans is still in the Trash.</td></tr>
+        <tr><td>Settings</td><td>See <a href="#settings">Settings</a>.</td></tr>
+      </table>
+      <p><strong>Pre-selected</strong> items come back on their own (reinstall, rebuild, refill). Items that can't come back, like old AI chats or duplicates, are listed but never pre-selected. Items cleared by a tool's own command, like the pnpm store, show the command; Ebb doesn't run it.</p>
+    </section>
+
+    <section id="keep">
+      <h2>Always keep</h2>
+      <p>On the Active projects pane, click <strong>Always keep</strong> on a project. In Recommendations, right-click an item and choose <strong>Always keep</strong>. A kept project counts as active forever; a kept path is never suggested, nor anything inside it. Unpin it from Settings › Never touch.</p>
+    </section>
+
+    <section id="undo">
+      <h2>History and put back</h2>
+      <p>Before moving anything, Ebb checks each item again: still there, not open in an app, not changed in the last 24 hours, not in a project that became active. Then it moves it to the Trash and writes it to History. From History, <strong>Put back</strong> restores one item or a whole clean. Ebb never overwrites something new at the old path, and never empties the Trash; the space is freed when you do.</p>
+    </section>
+    <section id="cli">
+      <h2>Command line</h2>
+      <p><code>ebbctl</code> uses the same engine and the same settings as the app. Commands that look for projects share these options:</p>
+      <table>
+        <tr><th>Option</th><th>What it does</th></tr>
+        <tr><td><code>--in &lt;dir&gt;</code></td><td>Folder to search for projects. Repeatable. Default: your home folder (or your Settings).</td></tr>
+        <tr><td><code>--active-days &lt;days&gt;</code></td><td>Activity this recent makes a project active. Default: your setting, 14.</td></tr>
+        <tr><td><code>--library-caches</code></td><td>Also look at app caches in <code>~/Library/Caches</code>.</td></tr>
+        <tr><td><code>--all-volumes</code></td><td>Follow folders onto external disks and network volumes.</td></tr>
+        <tr><td><code>-q, --quiet</code></td><td>Don't show the progress line.</td></tr>
+      </table>
+      <p>Progress goes to stderr and only on a terminal, so <code>--json</code> output stays clean in pipes.</p>
+
+      <div class="cmd" id="cmd-scan">
+        <h3>ebbctl scan</h3>
+        <p>What's safe to clear, by category. Read-only; this is also what <code>ebbctl</code> runs with no command.</p>
+        <pre>ebbctl scan
+ebbctl scan --details           <span class="c"># every item with its reason, and everything skipped</span>
+ebbctl scan --json &gt; scan.json  <span class="c"># the full result, for scripts</span>
+ebbctl scan --in ~/code --active-days 30</pre>
+        <p>"Safe to clear" is the total of pre-selected items. "Worth a look" is everything else. <code>~</code> before a size means it's an estimate, usually because files are shared with something else (pnpm does this).</p>
+      </div>
+
+      <div class="cmd" id="cmd-clean">
+        <h3>ebbctl clean</h3>
+        <p>Scans, shows what would go, asks, then moves items to the Trash and logs them.</p>
+        <pre>ebbctl clean --dry-run                          <span class="c"># show, move nothing</span>
+ebbctl clean                                    <span class="c"># the pre-selected items, after asking</span>
+ebbctl clean --select node-leftovers,python-venvs
+ebbctl clean --select old-installers --yes      <span class="c"># no question (scripts)</span></pre>
+        <p><code>--select</code> takes category ids from <code>ebbctl scan</code> and includes items that aren't pre-selected. Without a terminal, <code>clean</code> refuses unless you pass <code>--yes</code>. Items that need a tool's own command are listed with it instead of being moved.</p>
+      </div>
+
+      <div class="cmd" id="cmd-active">
+        <h3>ebbctl active</h3>
+        <p>Every project Ebb considers active, and the signals that made it so.</p>
+        <pre>ebbctl active
+ebbctl active --json</pre>
+      </div>
+
+      <div class="cmd" id="cmd-history">
+        <h3>ebbctl history · ebbctl undo</h3>
+        <p><code>history</code> lists every clean with its id, size and what's still in the Trash. <code>undo</code> puts a clean back; without an id it's the latest one.</p>
+        <pre>ebbctl history
+ebbctl undo                                  <span class="c"># the latest clean</span>
+ebbctl undo 20261026-082535-760b             <span class="c"># a specific clean</span>
+ebbctl undo 20261026-082535-760b --path ~/code/site/node_modules</pre>
+      </div>
+
+      <div class="cmd" id="cmd-rule">
+        <h3>ebbctl rule</h3>
+        <p>Add, list and remove <a href="#rules">custom rules</a>.</p>
+        <pre>ebbctl rule add '\.mov$' --in ~/Movies --older 90d --larger 500MB --name "Old recordings"
+ebbctl rule add '^client-' --in ~/code --never-touch
+ebbctl rule list
+ebbctl rule remove d940aee9</pre>
+        <table>
+          <tr><th>Option</th><th>What it does</th></tr>
+          <tr><td><code>&lt;regex&gt;</code></td><td>The pattern (ICU syntax, like <code>NSRegularExpression</code>). Matches anywhere unless anchored with <code>^</code> and <code>$</code>.</td></tr>
+          <tr><td><code>--in &lt;dir&gt;</code></td><td>Folder to look in. Repeatable. Required unless <code>--never-touch</code>.</td></tr>
+          <tr><td><code>--older &lt;age&gt;</code></td><td>Only files unchanged this long: <code>14d</code>, <code>2w</code>, <code>3m</code>, <code>1y</code>.</td></tr>
+          <tr><td><code>--larger &lt;size&gt;</code></td><td>Only files at least this big: <code>50MB</code>, <code>1.5GB</code>.</td></tr>
+          <tr><td><code>--never-touch</code></td><td>Protect matches from every category and rule, instead of suggesting them.</td></tr>
+          <tr><td><code>--full-path</code></td><td>Match the whole path, not just the file name.</td></tr>
+          <tr><td><code>--name &lt;name&gt;</code></td><td>A name to show. Default: the pattern.</td></tr>
+          <tr><td><code>--comes-back &lt;label&gt;</code></td><td><code>no</code> (default), <code>redownload</code>, or a how-to like <code>"re-export from Final Cut"</code>.</td></tr>
+        </table>
+      </div>
+    </section>
+    <section id="settings">
+      <h2>Settings</h2>
+      <p>Open Ebb › Settings. Changes apply from the next scan, and the command line uses the same settings.</p>
+      <table>
+        <tr><th>Setting</th><th>Default</th><th>What it does</th></tr>
+        <tr><td>Scan once a day</td><td>off until first run</td><td>Installs the daily agent and sends the notification.</td></tr>
+        <tr><td>Notify when at least</td><td>2 GB</td><td>Below this, no notification. 1, 2, 5, 10 or 20 GB.</td></tr>
+        <tr><td>On battery, only above</td><td>30%</td><td>On battery, the agent waits until the charge is above this.</td></tr>
+        <tr><td>Show the size in the menu bar</td><td>on</td><td>The number next to the wave icon.</td></tr>
+        <tr><td>Open Ebb at login</td><td>off</td><td>Starts the menu bar app when you log in.</td></tr>
+        <tr><td>Active means used in the last</td><td>14 days</td><td>7, 14 or 30 days.</td></tr>
+        <tr><td>Signals</td><td>all on</td><td>Turn off any of: file edits, git, Claude Code, Codex, running processes, editors.</td></tr>
+        <tr><td>Look for projects in</td><td><code>~</code></td><td>Add or remove folders.</td></tr>
+        <tr><td>Never look in</td><td>none</td><td>Folders to skip completely.</td></tr>
+        <tr><td>External disks</td><td>off</td><td>Include external disks and network volumes.</td></tr>
+        <tr><td>App caches</td><td>off</td><td>Include <code>~/Library/Caches</code> in temp files.</td></tr>
+        <tr><td>Categories</td><td>all on</td><td>Turn any category off.</td></tr>
+      </table>
+    </section>
+
+    <section id="rules">
+      <h2>Custom rules</h2>
+      <p>Rules add your own patterns. Two kinds:</p>
+      <ul>
+        <li><strong>Suggest</strong> rules list matching files under "worth a look". They're never pre-selected, and every built-in check still applies: the never-touch list, active projects, changed in the last 24 hours, open files.</li>
+        <li><strong>Never-touch</strong> rules protect matches from every category and every other rule. A match anywhere inside a folder protects the whole folder.</li>
+      </ul>
+      <p>Add them with <a href="#cmd-rule"><code>ebbctl rule add</code></a>, or edit the file directly:</p>
+      <pre>{
+  "version": 1,
+  "rules": [
+    {
+      "id": "3f2a9c1e",
+      "name": "Old screen recordings",
+      "pattern": "^Screen Recording .*\\.mov$",
+      "matchOn": "fileName",
+      "roots": ["~/Desktop", "~/Movies"],
+      "olderThanDays": 14,
+      "largerThanMB": 50,
+      "action": "suggest",
+      "comesBack": { "kind": "no" }
+    }
+  ]
+}</pre>
+      <p>Invalid patterns are refused when added, and skipped with a note if edited in by hand. Each rule gets 15 seconds per folder, so a bad pattern can't hang a scan. Never-touch rules count as matching if they can't decide in time.</p>
+    </section>
+
+    <section id="files">
+      <h2>Files Ebb keeps</h2>
+      <p>Everything lives in <code>~/Library/Application Support/Ebb/</code>, on your Mac only.</p>
+      <table>
+        <tr><th>File</th><th>What's in it</th></tr>
+        <tr><td><code>settings.json</code></td><td>Your settings, including Always keep.</td></tr>
+        <tr><td><code>rules.json</code></td><td>Custom rules. Copy it to another Mac to bring your rules along.</td></tr>
+        <tr><td><code>history.json</code></td><td>Every clean: what moved, from where, to where in the Trash.</td></tr>
+        <tr><td><code>last-scan.json</code></td><td>The latest scan, so the menu bar has a number right away.</td></tr>
+        <tr><td><code>agent-state.json</code></td><td>When the agent last scanned and notified.</td></tr>
+      </table>
+      <p>The daily agent is <code>~/Library/LaunchAgents/com.serveka.ebb.agent.plist</code>; its log is <code>~/Library/Logs/Ebb/agent.log</code>.</p>
+    </section>
+
+    <section id="decides">
+      <h2>How Ebb decides</h2>
+      <p>A <strong>project</strong> is the outermost folder with a marker: <code>.git</code>, <code>package.json</code>, <code>pyproject.toml</code>, <code>requirements.txt</code>, <code>Cargo.toml</code>, <code>Package.swift</code>, <code>go.mod</code>, <code>build.gradle</code> or an <code>.xcodeproj</code>. It's <strong>active</strong>, and skipped completely, if within <code>activeDays</code>:</p>
+      <table>
+        <tr><th>Signal</th><th>What Ebb looks at</th></tr>
+        <tr><td>File edits</td><td>A file changed outside build folders like <code>node_modules</code> and <code>dist</code>.</td></tr>
+        <tr><td>Git</td><td><code>.git/HEAD</code>, <code>index</code> or <code>logs/HEAD</code> changed.</td></tr>
+        <tr><td>Claude Code</td><td>A session in <code>~/.claude/projects</code> for the folder.</td></tr>
+        <tr><td>Codex</td><td>A session in <code>~/.codex/sessions</code> whose working folder is inside it.</td></tr>
+        <tr><td>Running</td><td>A process has its working folder inside it right now.</td></tr>
+        <tr><td>Editor</td><td>A recent workspace in VS Code, Cursor, Windsurf, Kiro, Antigravity or Xcode.</td></tr>
+        <tr><td>Pinned</td><td>You chose Always keep.</td></tr>
+      </table>
+      <p><code>ebbctl active</code> shows which signals fired for each project.</p>
+    </section>
+
+    <section id="categories">
+      <h2>Categories</h2>
+      <table>
+        <tr><th>Id</th><th>What</th><th>Rule</th></tr>
+        <tr><td><code>node-leftovers</code></td><td><code>node_modules</code>, <code>.next</code>, <code>.turbo</code>, <code>.parcel-cache</code>, <code>dist</code>, <code>build</code></td><td>Project inactive</td></tr>
+        <tr><td><code>python-venvs</code></td><td><code>.venv</code>, <code>venv</code>, <code>env</code> with <code>pyvenv.cfg</code></td><td>Project inactive</td></tr>
+        <tr><td><code>build-outputs</code></td><td>Rust <code>target</code>, Swift <code>.build</code>, Gradle</td><td>Project inactive</td></tr>
+        <tr><td><code>package-caches</code></td><td>npm, pnpm, Yarn, Bun, pip, Homebrew, CocoaPods, Go</td><td>Always eligible</td></tr>
+        <tr><td><code>xcode</code></td><td>DerivedData, old device support, unavailable simulators</td><td>Project inactive or gone</td></tr>
+        <tr><td><code>docker</code></td><td>Untagged images, unused build cache</td><td>Not used by a container</td></tr>
+        <tr><td><code>temp-files</code></td><td><code>$TMPDIR</code>, optionally <code>~/Library/Caches</code></td><td>3 days untouched</td></tr>
+        <tr><td><code>old-installers</code></td><td><code>.dmg</code>, <code>.pkg</code>, downloaded <code>.zip</code> in Downloads</td><td>Older than 30 days</td></tr>
+        <tr><td><code>claude-code-history</code></td><td>Old Claude Code chats</td><td>Older than 30 days*</td></tr>
+        <tr><td><code>agent-history</code></td><td>Codex, Gemini CLI, Cursor</td><td>Older than 30 days*</td></tr>
+        <tr><td><code>local-models</code></td><td>Ollama, LM Studio, Hugging Face</td><td>Not used in 30 days*</td></tr>
+        <tr><td><code>xcode-archives</code></td><td><code>.xcarchive</code></td><td>Older than 90 days*</td></tr>
+        <tr><td><code>duplicates</code></td><td>Identical files in Downloads, Desktop, Documents</td><td>Oldest copy kept*</td></tr>
+      </table>
+      <p>* Never pre-selected. Contributors can add categories in <a href="https://github.com/rajpra808/ebb/blob/main/docs/CATEGORIES.md">categories.json</a>.</p>
+    </section>
+
+    <section id="never">
+      <h2>Never touched</h2>
+      <p>No category or rule can override this list: <code>.git</code>, <code>.env*</code>, <code>.credentials*</code>, <code>.netrc</code>, <code>.npmrc</code>, key files, keychains, <code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>GEMINI.md</code>, <code>~/.claude/settings*.json</code>, Claude Code memory, <code>~/.codex/config*</code> and <code>auth.json</code>, <code>~/.ssh</code>, <code>~/.gnupg</code>, <code>~/.aws</code>, <code>~/.kube</code>, the Trash, <code>/System</code>, <code>/usr</code>, and other users' home folders. Ebb also skips anything changed in the last 24 hours, anything open in an app, symlinks, other disks, and folders it can't fully read.</p>
+    </section>
+
+    <section id="trouble">
+      <h2>Troubleshooting</h2>
+      <h3>"ebb" runs something else</h3>
+      <p>That's MacTeX's <code>ebb</code>. Use <code>ebbctl</code>.</p>
+      <h3>No notifications</h3>
+      <p>Check that Scan once a day is on, and that Ebb is allowed in System Settings › Notifications. The agent only notifies when at least your threshold can be cleared and it grew since last time. To try a run now: <code>/Applications/Ebb.app/Contents/MacOS/Ebb --agent --now</code>.</p>
+      <h3>Something I expected isn't listed</h3>
+      <p>Run <code>ebbctl scan --details</code>. The skipped list says why each item was left out, and <code>ebbctl active</code> shows which project signals fired.</p>
+      <h3>Something I need was moved</h3>
+      <p>Open History and click Put back, or run <code>ebbctl undo</code>. Please also <a href="https://github.com/rajpra808/ebb/security/advisories/new">report it privately</a> so it can't happen again.</p>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="../"><img src="../assets/icon.svg" alt="" style="width:22px;height:22px">Ebb</a>
+    <span>Free and open source, MIT. By the developers of <a class="mz" href="https://morningzero.com">morningzero.com</a></span>
+    <span class="sp"></span>
+    <a href="https://github.com/rajpra808/ebb">GitHub</a>
+    <a href="https://github.com/rajpra808/ebb/issues">Report an issue</a>
+  </div>
+</footer>
+
+<script>
+  // Highlight the section you're reading in the sidebar.
+  const links = [...document.querySelectorAll("#toc a")];
+  const spy = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      links.forEach((link) => link.classList.toggle("on", link.hash === "#" + entry.target.id));
+    }
+  }, { rootMargin: "-20% 0px -70% 0px" });
+  document.querySelectorAll("main section[id], main .cmd[id]").forEach((section) => spy.observe(section));
+</script>
+</body>
+</html>
