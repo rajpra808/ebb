@@ -16,16 +16,26 @@ version=${EBB_VERSION:-0.2.0}
 build=build
 bundle="$build/Ebb.app"
 
-if [ "${EBB_UNIVERSAL:-0}" = "1" ]; then
-    set -- -c release --arch arm64 --arch x86_64
-else
-    set -- -c release
-fi
+# Builds one product for one architecture (empty = this Mac's) and prints
+# the binary's path. Architectures are built one at a time: passing several
+# --arch flags switches SwiftPM to a build system that can't embed
+# categories.json.
+build() { # build <package dir> <product> [arch]
+    flags="-c release"
+    [ -n "${3:-}" ] && flags="$flags --arch $3"
+    (cd "$1" && swift build $flags --product "$2" >&2 && echo "$(swift build $flags --show-bin-path)/$2")
+}
 
-swift build "$@" --product EbbApp
-app_bin="$(swift build "$@" --show-bin-path)/EbbApp"
-(cd .. && swift build "$@" --product ebb)
-cli_bin="$(cd .. && swift build "$@" --show-bin-path)/ebb"
+if [ "${EBB_UNIVERSAL:-0}" = "1" ]; then
+    mkdir -p "$build/universal"
+    app_bin="$build/universal/EbbApp"
+    cli_bin="$build/universal/ebb"
+    lipo -create "$(build . EbbApp arm64)" "$(build . EbbApp x86_64)" -output "$app_bin"
+    lipo -create "$(build .. ebb arm64)" "$(build .. ebb x86_64)" -output "$cli_bin"
+else
+    app_bin="$(build . EbbApp)"
+    cli_bin="$(build .. ebb)"
+fi
 
 rm -rf "$bundle"
 mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Helpers" "$bundle/Contents/Resources"
