@@ -39,7 +39,7 @@
     <a href="#menu-bar">Menu bar panel</a>
     <a href="#window">The window</a>
     <a href="#keep">Always keep</a>
-    <a href="#undo">History and put back</a>
+    <a href="#undo">History and emptying</a>
     <h4>Command line</h4>
     <a href="#cli">Overview</a>
     <a href="#cmd-scan">scan</a>
@@ -142,8 +142,9 @@ curl -fsSL https://ebb.serveka.com/uninstall.sh | sh -s -- --keep-data</pre>
     </section>
 
     <section id="undo">
-      <h2>History and put back</h2>
-      <p>Before moving anything, Ebb checks each item again: still there, not open in an app, not changed in the last 24 hours, not in a project that became active. Then it moves it to the Trash and writes it to History. From History, <strong>Put back</strong> restores one item or a whole clean. Ebb never overwrites something new at the old path, and never empties the Trash; the space is freed when you do.</p>
+      <h2>History, put back and emptying</h2>
+      <p>Before moving anything, Ebb checks each item again: still there, not open in an app, not changed in the last 24 hours, not in a project that became active. Then it moves it to the Trash and writes it to History. From History, <strong>Put back</strong> restores one item or a whole clean, and never overwrites something new at the old path.</p>
+      <p>The space comes back once the Trash is emptied. <strong>Empty Ebb's items</strong> (in History, or in the menu bar panel when something is waiting) removes for good only what Ebb moved there; anything you put in the Trash yourself stays. It asks first, and emptied items can't be put back. From the terminal: <code>ebbctl empty-trash</code>.</p>
     </section>
     <section id="cli">
       <h2>Command line</h2>
@@ -186,12 +187,13 @@ ebbctl active --json</pre>
       </div>
 
       <div class="cmd" id="cmd-history">
-        <h3>ebbctl history · ebbctl undo</h3>
-        <p><code>history</code> lists every clean with its id, size and what's still in the Trash. <code>undo</code> puts a clean back; without an id it's the latest one.</p>
+        <h3>ebbctl history · undo · empty-trash</h3>
+        <p><code>history</code> lists every clean with its id, size and what's still in the Trash. <code>undo</code> puts a clean back; without an id it's the latest one. <code>empty-trash</code> removes Ebb's items from the Trash for good, after asking (<code>-y</code> to skip the question).</p>
         <pre>ebbctl history
 ebbctl undo                                  <span class="c"># the latest clean</span>
 ebbctl undo 20261026-082535-760b             <span class="c"># a specific clean</span>
-ebbctl undo 20261026-082535-760b --path ~/code/site/node_modules</pre>
+ebbctl undo 20261026-082535-760b --path ~/code/site/node_modules
+ebbctl empty-trash                           <span class="c"># only Ebb's items; asks first</span></pre>
       </div>
 
       <div class="cmd" id="cmd-rule">

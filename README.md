@@ -133,7 +133,8 @@ Things that can't come back are listed under "worth a look" and never pre-select
 > These hold for every line of code, and a never-touch test suite checks them before every release.
 
 1. **Nothing happens on its own.** Scans are read-only. Cleaning needs your click, only moves to the Trash, and every move is
-   logged so it can be put back. Ebb never deletes and never empties the Trash.
+   logged so it can be put back. Ebb never empties the Trash on its own; when you ask it to, it removes only what it
+   put there.
 2. **Checked again before moving.** Right before an item moves, Ebb re-checks open files, recent changes and whether its project
    became active since the scan.
 3. **A built-in never-touch list always wins**, even over your own rules: `.git`, `.env*`, `CLAUDE.md` and agent memory,
