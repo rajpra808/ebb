@@ -1,327 +1,291 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ebb · the daily cleanup agent for developers' Macs</title>
-  <meta name="description" content="Ebb finds disk space that's safe to clear on your Mac: old node_modules, caches, build output, AI agent history. It knows what you're working on and never touches it. Free and open source.">
+  <title>Ebb · Never let your Mac fill up with junk</title>
+  <meta name="description" content="Ebb is a free, open-source Mac app that clears old node_modules, caches and build files every day, and never touches what you're working on.">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="canonical" href="https://ebb.serveka.com/">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://ebb.serveka.com/">
   <meta property="og:title" content="Ebb · Space recedes. Your work stays.">
-  <meta property="og:description" content="The daily cleanup agent for developers' Macs. Free and open source, nothing leaves your Mac.">
+  <meta property="og:description" content="Never let your Mac fill up with junk. Free, open source, nothing leaves your Mac.">
   <meta property="og:image" content="https://ebb.serveka.com/assets/og.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="theme-color" content="#0E5E6F">
-  <style>
-    :root {
-      --teal: #0E5E6F; --teal-mid: #3B8F9A; --teal-light: #8FC1C9; --wash: #E4F1F3;
-      --ink: #14181B; --muted: #5B6670; --line: #E3E7EA; --paper: #FFFFFF; --soft: #F4F6F7;
-      --orange: #C2672E;
-      --radius: 16px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root { --ink: #E9EEF0; --muted: #9AA7AE; --line: #273236; --paper: #0F1719; --soft: #162125; --wash: #173A40; --teal-light: #5FB3C0; }
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body { margin: 0; background: var(--paper); color: var(--ink);
-      font: 17px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
-    a { color: var(--teal); }
-    @media (prefers-color-scheme: dark) { a { color: var(--teal-light); } }
-    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-    code, pre { font-family: var(--mono); }
-
-    /* Nav */
-    nav { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(1.6) blur(14px);
-      background: color-mix(in srgb, var(--paper) 82%, transparent); border-bottom: 1px solid var(--line); }
-    nav .wrap { display: flex; align-items: center; gap: 28px; height: 60px; }
-    nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--ink); text-decoration: none; }
-    nav .brand img { width: 28px; height: 28px; }
-    nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 15px; }
-    nav .links a { color: var(--muted); text-decoration: none; }
-    nav .links a:hover { color: var(--ink); }
-    .gh { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px;
-      border: 1px solid var(--line); color: var(--ink) !important; font-weight: 600; }
-
-    /* Hero */
-    .hero { position: relative; overflow: hidden; background: linear-gradient(180deg, #0E5E6F, #083C47); color: #fff; }
-    .hero .wrap { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 48px; align-items: center; padding-top: 88px; padding-bottom: 120px; }
-    .eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; font-weight: 600; color: #CFE6EA;
-      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); padding: 6px 12px; border-radius: 999px; }
-    .hero h1 { font-size: clamp(44px, 6vw, 72px); line-height: 1.02; letter-spacing: -0.03em; margin: 22px 0 18px; }
-    .hero p.lead { font-size: 21px; color: #D7EBEE; max-width: 34em; margin: 0 0 30px; }
-    .install { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.14);
-      border-radius: 12px; padding: 6px 6px 6px 16px; max-width: 600px; }
-    .install code { flex: 1; font-size: 14.5px; color: #F0F8F9; white-space: nowrap; overflow-x: auto; }
-    .install code .prompt { color: var(--teal-light); user-select: none; }
-    button.copy { border: 0; border-radius: 9px; padding: 10px 16px; font: 600 14px/1 inherit; cursor: pointer;
-      background: #fff; color: var(--teal); }
-    button.copy:active { transform: translateY(1px); }
-    .hero .small { margin-top: 14px; font-size: 14px; color: #A9CDD3; }
-    .hero .small a { color: #fff; }
-    .hero .shot { justify-self: center; width: min(460px, 100%); filter: drop-shadow(0 30px 60px rgba(0,0,0,.45));
-      animation: float 7s ease-in-out infinite; }
-    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-    .tide { position: absolute; left: 0; right: 0; bottom: -2px; height: 90px; }
-    .tide path { animation: drift 16s linear infinite; }
-    .tide path + path { animation-duration: 24s; }
-    @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-200px); } }
-    @media (prefers-reduced-motion: reduce) { .tide path, .hero .shot { animation: none; } }
-
-    /* Sections */
-    section { padding: 96px 0; }
-    section.soft { background: var(--soft); }
-    h2 { font-size: clamp(30px, 4vw, 42px); letter-spacing: -0.02em; line-height: 1.12; margin: 0 0 14px; }
-    .sub { color: var(--muted); font-size: 19px; max-width: 40em; margin: 0 0 44px; }
-    .grid { display: grid; gap: 18px; }
-    .g3 { grid-template-columns: repeat(3, 1fr); }
-    .g6 { grid-template-columns: repeat(6, 1fr); }
-    .card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
-    section.soft .card { background: var(--paper); }
-    .card h3 { font-size: 18px; margin: 10px 0 6px; }
-    .card p { margin: 0; color: var(--muted); font-size: 15.5px; }
-    .icon { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--wash); color: var(--teal); font-size: 20px; }
-    @media (prefers-color-scheme: dark) { .icon { color: var(--teal-light); } }
-
-    .signal { text-align: left; }
-    .signal .icon { margin-bottom: 4px; }
-
-    /* Categories table */
-    .table { width: 100%; border-collapse: collapse; font-size: 15.5px; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-    .table th, .table td { padding: 13px 16px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
-    .table th { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--soft); }
-    .table tr:last-child td { border-bottom: 0; }
-    .badge { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
-    .b-yes { background: var(--wash); color: var(--teal); }
-    .b-re { background: var(--soft); color: var(--muted); border: 1px solid var(--line); }
-    .b-no { background: #FDF3E7; color: var(--orange); }
-    @media (prefers-color-scheme: dark) { .b-yes { color: var(--teal-light); } .b-no { background: #3B2A1C; color: #E89A62; } }
-    .pre { color: var(--teal); font-weight: 700; }
-
-    /* Promises */
-    .promise { display: flex; gap: 14px; align-items: flex-start; }
-    .promise .tick { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--teal); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 14px; }
-    .promise h3 { margin: 0 0 4px; font-size: 17px; }
-
-    /* Screenshots */
-    .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-    .shots figure { margin: 0; }
-    .shots img { width: 100%; border-radius: 14px; border: 1px solid var(--line); box-shadow: 0 18px 40px rgba(10, 40, 46, .14); }
-    .shots figcaption { color: var(--muted); font-size: 14.5px; margin-top: 10px; }
-    .shots .wide { grid-column: 1 / -1; }
-
-    /* Terminal */
-    .term { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 40px; align-items: center; }
-    .term img { width: 100%; border-radius: 14px; box-shadow: 0 24px 50px rgba(0,0,0,.25); }
-    .cmds { font-family: var(--mono); font-size: 14.5px; background: var(--soft); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; line-height: 1.9; overflow-x: auto; }
-    .cmds span { color: var(--muted); }
-
-    /* FAQ */
-    details { border-bottom: 1px solid var(--line); padding: 18px 0; }
-    details summary { cursor: pointer; font-weight: 650; font-size: 18px; list-style: none; display: flex; justify-content: space-between; gap: 20px; }
-    details summary::after { content: "+"; color: var(--teal); font-weight: 400; font-size: 24px; line-height: 1; }
-    details[open] summary::after { content: "–"; }
-    details p { color: var(--muted); margin: 12px 0 0; max-width: 46em; }
-
-    /* CTA + footer */
-    .cta { text-align: center; background: linear-gradient(180deg, #0E5E6F, #083C47); color: #fff; }
-    .cta h2 { color: #fff; }
-    .cta .install { margin: 26px auto 0; text-align: left; }
-    footer { padding: 36px 0 48px; color: var(--muted); font-size: 14.5px; }
-    footer .wrap { display: flex; gap: 22px; flex-wrap: wrap; align-items: center; }
-    footer .spacer { flex: 1; }
-    footer a { color: var(--muted); }
-
-    @media (max-width: 900px) {
-      .hero .wrap, .term { grid-template-columns: 1fr; }
-      .g3 { grid-template-columns: 1fr; }
-      .g6 { grid-template-columns: repeat(2, 1fr); }
-      .shots { grid-template-columns: 1fr; }
-      nav .links a:not(.gh) { display: none; }
-      .table .hide-sm { display: none; }
-    }
-  </style>
+  <meta name="theme-color" content="#03141A">
+  <link rel="stylesheet" href="styles.css">
+  <script>document.documentElement.classList.replace("no-js", "js")</script>
 </head>
 <body>
-  <nav>
-    <div class="wrap">
-      <a class="brand" href="#"><img src="assets/icon.svg" alt="">Ebb</a>
-      <div class="links">
-        <a href="#how">How it decides</a>
-        <a href="#clears">What it clears</a>
-        <a href="#safety">Safety</a>
-        <a href="#faq">FAQ</a>
-        <a class="gh" href="https://github.com/rajpra808/ebb">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-          Star on GitHub
-        </a>
-      </div>
-    </div>
-  </nav>
 
-  <header class="hero">
-    <div class="wrap">
-      <div>
-        <span class="eyebrow">Free · open source · nothing leaves your Mac</span>
-        <h1>Space recedes.<br>Your work stays.</h1>
-        <p class="lead">Ebb is a daily cleanup agent for developers' Macs. It finds old <code>node_modules</code>, caches, build output and AI agent history, tells you once a day, and never touches a project you're working on.</p>
-        <div class="install">
-          <code id="cmd"><span class="prompt">$ </span>curl -fsSL https://ebb.serveka.com/install.sh | sh</code>
-          <button class="copy" data-copy="curl -fsSL https://ebb.serveka.com/install.sh | sh">Copy</button>
+<nav class="top" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="assets/icon.svg" alt="">Ebb</a>
+    <div class="links">
+      <a href="#demo">Try it</a>
+      <a href="#decides">How it decides</a>
+      <a href="#safety">Safety</a>
+      <a href="#faq">FAQ</a>
+      <a class="pill-link" href="https://github.com/rajpra808/ebb">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        Star <span class="stars" id="stars"></span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <!-- Leftovers drift out with the tide; your work stays on the shore. -->
+  <div class="flotsam" aria-hidden="true">
+    <span class="chip out" style="left:66%;top:34%;--dx:-12vw;--dy:52vh;--r:-14deg;--d:15s;--delay:0s">node_modules <small>1.2 GB</small></span>
+    <span class="chip out" style="left:80%;top:44%;--dx:-8vw;--dy:44vh;--r:10deg;--d:17s;--delay:3s">.next/cache <small>380 MB</small></span>
+    <span class="chip out" style="left:70%;top:58%;--dx:-14vw;--dy:34vh;--r:-8deg;--d:13s;--delay:6s">DerivedData <small>4.6 GB</small></span>
+    <span class="chip out" style="left:86%;top:30%;--dx:-16vw;--dy:58vh;--r:16deg;--d:19s;--delay:9s">~/.npm/_cacache <small>420 MB</small></span>
+    <span class="chip out" style="left:74%;top:70%;--dx:-6vw;--dy:24vh;--r:-12deg;--d:12s;--delay:1.5s">Docker-4.30.dmg <small>545 MB</small></span>
+    <span class="chip out" style="left:88%;top:62%;--dx:-10vw;--dy:30vh;--r:9deg;--d:16s;--delay:4.5s">.venv <small>944 MB</small></span>
+    <span class="chip stay" style="right:5%;top:16%;--delay:.5s">.git <small>never touched</small></span>
+    <span class="chip stay" style="right:20%;top:13%;--delay:1.7s">CLAUDE.md</span>
+    <span class="chip stay" style="right:12%;top:22%;--delay:2.6s">.env.local</span>
+  </div>
+
+  <div class="wrap">
+    <span class="kicker rise"><span class="dot"></span>Free and open source · nothing leaves your Mac</span>
+    <h1 class="rise r1"><span class="recede">Space recedes.</span><br><span class="stays">Your work stays.</span></h1>
+    <p class="lead rise r2"><b>Never let your Mac fill up with junk.</b> Ebb clears old <code>node_modules</code>, caches and build files once a day, explains every item, and never touches a project you're working on.</p>
+    <div class="install rise r3">
+      <code><span class="prompt">$ </span>curl -fsSL https://ebb.serveka.com/install.sh | sh</code>
+      <button class="copy" data-copy="curl -fsSL https://ebb.serveka.com/install.sh | sh">Copy</button>
+    </div>
+    <p class="fine rise r3">macOS 14+ · Apple silicon and Intel · <a href="https://github.com/rajpra808/ebb/releases/latest">Download the zip</a> · <a href="https://github.com/rajpra808/ebb">Source on GitHub</a></p>
+  </div>
+
+  <div class="hero-meter" aria-hidden="true">
+    <div class="num" id="meter">0.0 GB</div>
+    <div class="label">gone out with the tide</div>
+  </div>
+
+  <div class="sea" aria-hidden="true">
+    <svg class="w3" viewBox="0 0 2880 340" preserveAspectRatio="none"><path fill="#0E5E6F" d="M0 150 C240 110 480 190 720 150 S1200 110 1440 150 S1920 190 2160 150 S2640 110 2880 150 V340 H0Z"/></svg>
+    <svg class="w2" viewBox="0 0 2880 340" preserveAspectRatio="none"><path fill="#0A4A57" d="M0 200 C240 160 480 240 720 200 S1200 160 1440 200 S1920 240 2160 200 S2640 160 2880 200 V340 H0Z"/></svg>
+    <svg class="w1" viewBox="0 0 2880 340" preserveAspectRatio="none"><path fill="#0A3A46" d="M0 250 C240 220 480 280 720 250 S1200 220 1440 250 S1920 280 2160 250 S2640 220 2880 250 V340 H0Z"/></svg>
+  </div>
+</header>
+
+<section id="demo" class="demo-sec">
+  <div class="wrap">
+    <div class="eyebrow reveal">Try it here</div>
+    <h2 class="reveal">Read first. <em>Then</em> let it go.</h2>
+    <p class="sub reveal">This is Ebb's review screen with a sample Mac's leftovers. Untick anything you want to keep, then send the rest out with the tide.</p>
+
+    <div class="window reveal" role="group" aria-label="Interactive demo of Ebb's review screen">
+      <div class="bar"><i></i><i></i><i></i><span>Ebb</span></div>
+      <div class="side">
+        <div>Overview</div>
+        <div class="on">Recommendations <b id="side-total">6.7 GB</b></div>
+        <div>Active projects <span>3</span></div>
+        <div>History</div>
+        <div>Settings</div>
+      </div>
+      <div class="list list-wrap">
+        <h3>Recommendations</h3>
+        <p class="hint">Every item says what it is, whether it comes back, and why it's safe.</p>
+        <div class="rows">
+          <div class="head"><span>Safe to clear · pre-selected</span><b id="list-total">6.7 GB</b></div>
+          <div id="rows"></div>
         </div>
-        <p class="small">macOS 14 or later · Apple silicon and Intel · <a href="https://github.com/rajpra808/ebb/releases/latest">download the zip</a> · <a href="https://github.com/rajpra808/ebb#build-from-source">build from source</a></p>
+        <div class="toast" id="toast"></div>
       </div>
-      <img class="shot" src="assets/menubar.png" alt="Ebb's menu bar popover: 6.7 GB can be cleared safely, split by category, with Review and Move to Trash buttons.">
-    </div>
-    <svg class="tide" viewBox="0 0 1600 90" preserveAspectRatio="none" aria-hidden="true">
-      <path fill="var(--paper)" d="M0 60 q50 -26 100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 V90 H0 Z"/>
-      <path fill="var(--paper)" opacity=".35" d="M0 48 q50 -22 100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 t100 0 V90 H0 Z"/>
-    </svg>
-  </header>
-
-  <section id="why">
-    <div class="wrap">
-      <h2>Dev tools quietly eat 20 to 100 GB.</h2>
-      <p class="sub">Package managers, build tools, local models and AI agents all leave things behind. General cleaners don't know developer folders, and a single scary "Clean" button isn't something you want near your code.</p>
-      <div class="grid g3">
-        <div class="card"><div class="icon">◷</div><h3>A daily agent</h3><p>Scans in the background once a day when your Mac is idle, and notifies you only when there's enough to bother with.</p></div>
-        <div class="card"><div class="icon">⛨</div><h3>Knows your active work</h3><p>Git, file edits, Claude Code and Codex sessions, running dev servers and editor recents all keep a project off limits.</p></div>
-        <div class="card"><div class="icon">↺</div><h3>Every item explained</h3><p>What it is, how big it is, whether it comes back, and why it's safe. Cleaning goes to the Trash, and you can put it all back.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="how" class="soft">
-    <div class="wrap">
-      <h2>How Ebb decides a project is active</h2>
-      <p class="sub">If any of these is true in the last 14 days (you can choose 7 or 30), Ebb skips the project completely. Nothing inside it is ever suggested.</p>
-      <div class="grid g6">
-        <div class="card signal"><div class="icon">✎</div><h3>File edits</h3><p>Source changed, outside build folders.</p></div>
-        <div class="card signal"><div class="icon">⑂</div><h3>Git</h3><p>A commit, checkout or stage.</p></div>
-        <div class="card signal"><div class="icon">›_</div><h3>Agent sessions</h3><p>Claude Code or Codex worked there.</p></div>
-        <div class="card signal"><div class="icon">∿</div><h3>Running</h3><p>A shell or dev server is inside it now.</p></div>
-        <div class="card signal"><div class="icon">▢</div><h3>Editor</h3><p>Open in VS Code, Cursor or Xcode.</p></div>
-        <div class="card signal"><div class="icon">⌖</div><h3>Pinned</h3><p>You chose Always keep.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="clears">
-    <div class="wrap">
-      <h2>What it can clear</h2>
-      <p class="sub">A fixed, documented list. <span class="pre">Pre-selected</span> items come back on their own; the rest are listed under "worth a look" and never pre-selected.</p>
-      <table class="table">
-        <thead><tr><th>Category</th><th class="hide-sm">Examples</th><th>Comes back</th><th>Rule</th></tr></thead>
-        <tbody>
-          <tr><td><span class="pre">Node / JS leftovers</span></td><td class="hide-sm"><code>node_modules</code>, <code>.next</code>, <code>.turbo</code>, <code>dist</code></td><td><span class="badge b-yes">Comes back</span></td><td>Project inactive</td></tr>
-          <tr><td><span class="pre">Python virtual envs</span></td><td class="hide-sm"><code>.venv</code>, <code>venv</code> with <code>pyvenv.cfg</code></td><td><span class="badge b-yes">Comes back</span></td><td>Project inactive</td></tr>
-          <tr><td><span class="pre">Other build output</span></td><td class="hide-sm">Rust <code>target</code>, Swift <code>.build</code>, Gradle</td><td><span class="badge b-yes">Comes back</span></td><td>Project inactive</td></tr>
-          <tr><td><span class="pre">Package caches</span></td><td class="hide-sm">npm, pnpm, Yarn, Bun, pip, Homebrew, CocoaPods, Go</td><td><span class="badge b-yes">Comes back</span></td><td>Always eligible</td></tr>
-          <tr><td><span class="pre">Xcode</span></td><td class="hide-sm">DerivedData, old device support, dead simulators</td><td><span class="badge b-yes">Comes back</span></td><td>Project inactive or gone</td></tr>
-          <tr><td><span class="pre">Docker</span></td><td class="hide-sm">Untagged images, unused build cache</td><td><span class="badge b-yes">Comes back</span></td><td>Not used by any container</td></tr>
-          <tr><td><span class="pre">Temp files and old installers</span></td><td class="hide-sm"><code>$TMPDIR</code>, <code>.dmg</code> and <code>.pkg</code> in Downloads</td><td><span class="badge b-re">Re-download</span></td><td>3 / 30 days untouched</td></tr>
-          <tr><td>AI agent history</td><td class="hide-sm">Claude Code, Codex, Gemini CLI, Cursor chats</td><td><span class="badge b-no">Gone for good</span></td><td>Older than 30 days</td></tr>
-          <tr><td>Local AI models</td><td class="hide-sm">Ollama, LM Studio, Hugging Face</td><td><span class="badge b-re">Re-download</span></td><td>Not loaded in 30 days</td></tr>
-          <tr><td>Duplicates and Xcode archives</td><td class="hide-sm">Identical files in Downloads, Desktop, Documents</td><td><span class="badge b-no">Gone for good</span></td><td>Oldest copy always kept</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section id="safety" class="soft">
-    <div class="wrap">
-      <h2>Safety promises</h2>
-      <p class="sub">Checked by a never-touch test suite that has to pass before every release.</p>
-      <div class="grid g3">
-        <div class="promise"><span class="tick">✓</span><div><h3>Nothing happens on its own</h3><p class="sub" style="font-size:15.5px;margin:0">Scans are read-only. Cleaning needs your click and moves to the Trash. Ebb never empties it.</p></div></div>
-        <div class="promise"><span class="tick">✓</span><div><h3>Checked again before moving</h3><p class="sub" style="font-size:15.5px;margin:0">Right before anything moves, Ebb re-checks open files, recent changes and active projects.</p></div></div>
-        <div class="promise"><span class="tick">✓</span><div><h3>A list it never touches</h3><p class="sub" style="font-size:15.5px;margin:0"><code>.git</code>, <code>.env*</code>, <code>CLAUDE.md</code>, agent settings and credentials, SSH keys, keychains, <code>/System</code>.</p></div></div>
-        <div class="promise"><span class="tick">✓</span><div><h3>Recent and open files stay</h3><p class="sub" style="font-size:15.5px;margin:0">Anything changed in the last 24 hours, or open in an app right now, is left out.</p></div></div>
-        <div class="promise"><span class="tick">✓</span><div><h3>When unsure, it leaves it</h3><p class="sub" style="font-size:15.5px;margin:0">A <code>build</code> folder git tracks, an unreadable folder, a zip you made yourself: all skipped.</p></div></div>
-        <div class="promise"><span class="tick">✓</span><div><h3>Nothing leaves your Mac</h3><p class="sub" style="font-size:15.5px;margin:0">No account, no telemetry, no network calls. Open source under MIT, so you can check.</p></div></div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="wrap">
-      <h2>See it before it moves anything</h2>
-      <p class="sub">Every item says what it is, whether it comes back, and why it's safe.</p>
-      <div class="shots">
-        <figure class="wide"><img src="assets/recommendations.png" alt="Recommendations: items with checkboxes, paths, reasons and comes-back labels, and a selected total." loading="lazy"><figcaption>Recommendations. Pre-selected items come back; everything else needs your tick.</figcaption></figure>
-        <figure><img src="assets/active.png" alt="Active projects with the signals that protect each one." loading="lazy"><figcaption>Active projects, and exactly why each one is protected.</figcaption></figure>
-        <figure><img src="assets/history.png" alt="History of cleans with Put back buttons." loading="lazy"><figcaption>History. Put back one item or a whole clean.</figcaption></figure>
-      </div>
-    </div>
-  </section>
-
-  <section class="soft">
-    <div class="wrap term">
-      <div>
-        <h2>A CLI for the terminal people</h2>
-        <p class="sub" style="margin-bottom:22px">The same engine as the app, with JSON output for scripts.</p>
-        <div class="cmds">
-          ebbctl scan <span># what's safe to clear</span><br>
-          ebbctl scan --json <span># the full result</span><br>
-          ebbctl active <span># active projects and why</span><br>
-          ebbctl clean --dry-run <span># what would move</span><br>
-          ebbctl undo <span># put the last clean back</span><br>
-          ebbctl rule add '\.mov$' --in ~/Movies --older 90d
+      <div class="panel">
+        <div class="card">
+          <div class="label">Selected</div>
+          <div class="total"><span id="sel-total">6.7 GB</span> <small id="sel-count">7 items</small></div>
+          <div class="split">
+            <div><span><i style="background:#0E5E6F"></i>Comes back</span><b id="sel-back">5.9 GB</b></div>
+            <div><span><i style="background:#9AA5AA"></i>Re-download</span><b id="sel-re">786 MB</b></div>
+            <div><span><i style="background:#C2672E"></i>Gone for good</span><b>0 bytes</b></div>
+          </div>
+          <button class="trash-btn" id="trash">Move 6.7 GB to Trash</button>
+          <div class="note">Goes to the Trash, not deleted. Put back anything from History.</div>
+          <div class="shield"><span>⛨</span><span><b>3 active projects skipped.</b> Nothing inside them is suggested.</span></div>
         </div>
-        <p style="color:var(--muted);font-size:14.5px;margin-top:14px"><code>ebb</code> works too, unless MacTeX's <code>ebb</code> comes first on your PATH.</p>
-      </div>
-      <img src="assets/terminal.svg" alt="A terminal running ebb scan: 16.0 GB safe to clear across categories, 35 active projects skipped." loading="lazy">
-    </div>
-  </section>
-
-  <section id="faq">
-    <div class="wrap">
-      <h2>Questions</h2>
-      <details><summary>Is it safe to run on my work Mac?</summary><p>Scanning only reads sizes and dates. Cleaning only happens when you click, only moves items to the Trash, and every move is logged so you can put it back. Anything in a project you've touched in the last two weeks is never suggested.</p></details>
-      <details><summary>Why does it need Full Disk Access?</summary><p>macOS hides parts of ~/Library and some tool folders from apps without it. Without access Ebb still works, but it can't see or vouch for those folders, so it skips them.</p></details>
-      <details><summary>Why isn't it signed by Apple or in the App Store?</summary><p>Full Disk Access and moving files to the Trash across the disk don't fit the App Store sandbox. Ebb is also not notarized yet. The install script downloads with curl, which macOS doesn't flag, so the app opens normally and its checksum is verified first. If you download the zip in a browser, right-click Ebb and choose Open the first time.</p></details>
-      <details><summary>Does it delete anything automatically?</summary><p>No. The daily agent only scans and, when there's at least 2 GB to clear, sends one notification. Ebb never deletes and never empties the Trash.</p></details>
-      <details><summary>What about pnpm, Docker and Go caches?</summary><p>Those are cleared with the tool's own command (<code>pnpm store prune</code>, <code>docker builder prune</code>, <code>go clean -modcache</code>). Ebb shows the command and its size, and leaves running it to you.</p></details>
-      <details><summary>How do I uninstall it?</summary><p><code>curl -fsSL https://ebb.serveka.com/install.sh | sh -s -- --uninstall</code> removes the app, the commands and the daily agent. Add <code>--purge</code> to remove settings and history too.</p></details>
-    </div>
-  </section>
-
-  <section class="cta">
-    <div class="wrap">
-      <h2>Give your disk some room.</h2>
-      <p style="color:#D7EBEE;font-size:19px;margin:0">One command, about a minute, nothing changes until you say so.</p>
-      <div class="install">
-        <code><span class="prompt">$ </span>curl -fsSL https://ebb.serveka.com/install.sh | sh</code>
-        <button class="copy" data-copy="curl -fsSL https://ebb.serveka.com/install.sh | sh">Copy</button>
       </div>
     </div>
-  </section>
-
-  <footer>
-    <div class="wrap">
-      <span>Ebb is free and open source under the MIT license. Made by Rajendra Prajapat at Serveka.</span>
-      <span class="spacer"></span>
-      <a href="https://github.com/rajpra808/ebb">GitHub</a>
-      <a href="https://github.com/rajpra808/ebb/releases">Releases</a>
-      <a href="https://github.com/rajpra808/ebb/issues">Report an issue</a>
+    <div class="demo-foot reveal">
+      <span>Sample data. The real app only looks at your Mac, and shows its work the same way.</span>
+      <button id="reset">Bring the tide back in</button>
     </div>
-  </footer>
+  </div>
+</section>
 
-  <script>
-    for (const button of document.querySelectorAll("button.copy")) {
-      button.addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(button.dataset.copy);
-          button.textContent = "Copied";
-          setTimeout(() => (button.textContent = "Copy"), 1600);
-        } catch {
-          button.textContent = "Select and copy";
-        }
-      });
-    }
-  </script>
+<section id="decides">
+  <div class="wrap">
+    <div class="eyebrow reveal">Active-work protection</div>
+    <h2 class="reveal">It knows what you're <em>working on.</em></h2>
+    <p class="sub reveal">If any of these is true in the last 14 days, Ebb skips the whole project. Not one file inside it is suggested.</p>
+    <div class="signals">
+      <div class="signal reveal"><div class="ic">✎</div><h3>File edits</h3><p>A source file changed, outside <code>node_modules</code> and build folders.</p></div>
+      <div class="signal reveal d1"><div class="ic">⑂</div><h3>Git</h3><p>A commit, checkout, stage or pull moved <code>.git/HEAD</code> or the index.</p></div>
+      <div class="signal reveal d2"><div class="ic">›_</div><h3>Agent sessions</h3><p>Claude Code or Codex worked in the folder.</p></div>
+      <div class="signal reveal"><div class="ic">∿</div><h3>Running now</h3><p>A shell, dev server or <code>claude</code> process sits inside it.</p></div>
+      <div class="signal reveal d1"><div class="ic">▢</div><h3>Open in an editor</h3><p>VS Code, Cursor, Windsurf or Xcode had it open.</p></div>
+      <div class="signal reveal d2"><div class="ic">⌖</div><h3>Pinned</h3><p>You chose Always keep. It stays, forever.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow reveal">How it works</div>
+    <h2 class="reveal">A tide, once a day.</h2>
+    <div class="steps">
+      <div class="step reveal"><div class="n">01</div><h3>It scans quietly</h3><p>Once a day, when your Mac is idle and on power. Read-only: it measures sizes and dates, nothing more.</p></div>
+      <div class="step reveal d1"><div class="n">02</div><h3>It tells you once</h3><p>One notification, only when at least 2 GB can go. “6.2 GB can be cleared safely: 3 inactive node_modules, Docker build cache.”</p></div>
+      <div class="step reveal d2"><div class="n">03</div><h3>You decide</h3><p>Review what it found, untick anything, move the rest to the Trash. Each item is checked again first, and History can put it all back.</p></div>
+    </div>
+    <div class="marquee reveal" aria-hidden="true"><div class="track" id="tools"></div></div>
+    <div class="marquee rev reveal" aria-hidden="true"><div class="track" id="tools2"></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap numbers">
+    <div class="reveal">
+      <div class="eyebrow">Measured, not estimated</div>
+      <div class="figure"><span id="figure" data-to="16.0">0.0</span><small> GB</small></div>
+      <p class="sub" style="margin:16px 0 0">safe to clear on the Mac Ebb was built on, with 35 active projects left completely alone.</p>
+    </div>
+    <div class="reveal d1">
+      <div class="bars" id="bars">
+        <div><span class="l">node_modules</span><span class="track"><span class="fill" data-w="100"></span></span><span class="v">8.9 GB</span></div>
+        <div><span class="l">package caches</span><span class="track"><span class="fill" data-w="48"></span></span><span class="v">4.3 GB</span></div>
+        <div><span class="l">build output</span><span class="track"><span class="fill" data-w="18"></span></span><span class="v">1.6 GB</span></div>
+        <div><span class="l">python venvs</span><span class="track"><span class="fill" data-w="11"></span></span><span class="v">1.0 GB</span></div>
+        <div><span class="l">agent history</span><span class="track"><span class="fill" data-w="2"></span></span><span class="v">181 MB</span></div>
+      </div>
+      <p class="caption">Ebb 0.2 · MacBook Pro · read-only <code>ebb scan</code> in 27 s. Your number depends on what you build.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow reveal">The honest part</div>
+    <h2 class="reveal">Not another <em>magic button.</em></h2>
+    <div class="versus">
+      <div class="them reveal"><h3>A typical cleaner</h3><ul>
+        <li>Clears caches that refill by morning</li>
+        <li>One big button and little to read</li>
+        <li>Can't tell a build cache from your work</li>
+        <li>Deletes, so mistakes are permanent</li>
+        <li>Wants a subscription and an account</li>
+      </ul></div>
+      <div class="us reveal d1"><h3>Ebb</h3><ul>
+        <li>Goes after leftovers of projects you stopped opening</li>
+        <li>Says what each item is and whether it comes back</li>
+        <li>Skips anything with git, edits, agents or editors in use</li>
+        <li>Moves to the Trash, logs it, puts it back</li>
+        <li>Free, MIT licensed, no account, no network calls</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<section id="safety" class="shore">
+  <div class="wrap">
+    <div class="eyebrow reveal">Safe by design</div>
+    <h2 class="reveal">Some things never leave the shore.</h2>
+    <p class="sub reveal">A built-in never-touch list wins over every category and every rule you write. A test suite checks it before each release.</p>
+    <div class="sandbar reveal">
+      <span>.git</span><span>.env*</span><span>CLAUDE.md</span><span>~/.claude/settings.json</span><span>.credentials*</span>
+      <span>~/.codex/config</span><span>~/.ssh</span><span>keychains</span><span>/System</span><span>other users</span>
+    </div>
+    <div class="promises">
+      <div class="reveal"><h3>Nothing happens on its own</h3><p>Scans only read. Cleaning needs your click, and Ebb never empties the Trash.</p></div>
+      <div class="reveal d1"><h3>Checked again before moving</h3><p>Open files, recent changes and active projects are re-checked right before anything moves.</p></div>
+      <div class="reveal d2"><h3>Recent and open files stay</h3><p>Changed in the last 24 hours, or open in an app: left alone.</p></div>
+      <div class="reveal"><h3>When unsure, it leaves it</h3><p>A <code>build</code> folder git tracks, an unreadable folder, your own zip: skipped.</p></div>
+      <div class="reveal d1"><h3>Tools clean their own caches</h3><p>For pnpm, Docker and Go, Ebb shows the right command instead of guessing.</p></div>
+      <div class="reveal d2"><h3>Nothing leaves your Mac</h3><p>No telemetry, no account. Read every line on GitHub.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow reveal">The app</div>
+    <h2 class="reveal">Lives in your menu bar.</h2>
+    <p class="sub reveal">Overview, recommendations, the projects it's protecting and every past clean, in one calm window.</p>
+    <div class="screens reveal" id="screens">
+      <img src="assets/recommendations.png" alt="Ebb's Recommendations window." loading="lazy">
+      <div class="thumbs">
+        <img src="assets/active.png" alt="Active projects and their signals." loading="lazy">
+        <img src="assets/history.png" alt="History with Put all back." loading="lazy">
+        <img src="assets/settings.png" alt="Settings." loading="lazy">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap term">
+    <div class="reveal">
+      <div class="eyebrow">For the terminal</div>
+      <h2>Same engine, <em>no window.</em></h2>
+      <p class="sub" style="margin-bottom:26px">Scripts get JSON. Humans get calm, aligned tables.</p>
+      <div class="cmds">
+        ebbctl scan <span># what's safe to clear</span><br>
+        ebbctl active <span># active projects, and why</span><br>
+        ebbctl clean --dry-run <span># what would move</span><br>
+        ebbctl undo <span># put the last clean back</span><br>
+        ebbctl scan --json <span># the full result</span>
+      </div>
+    </div>
+    <img class="reveal d1" src="assets/terminal.svg" alt="A terminal running ebb scan, finding 16.0 GB safe to clear." loading="lazy">
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="eyebrow reveal">Questions</div>
+    <h2 class="reveal">Fair questions.</h2>
+    <div class="reveal">
+      <details><summary>Is it safe on my work Mac?</summary><p>Scanning only reads sizes and dates. Cleaning happens only when you click, only moves items to the Trash, and every move is logged so you can put it back. Anything in a project you've touched in the last two weeks is never suggested.</p></details>
+      <details><summary>Doesn't it all just come back?</summary><p>Some of it does, and Ebb says so for every item. It goes after what's left behind by projects you stopped opening, which only comes back if you build them again.</p></details>
+      <details><summary>Why does it ask for Full Disk Access?</summary><p>macOS hides parts of ~/Library and some tool folders without it. Ebb still works without access, skips what it can't see, and tells you.</p></details>
+      <details><summary>Why isn't it notarized?</summary><p>Notarization needs a paid Apple developer membership, which this free project doesn't have yet. The install script downloads with curl, which macOS doesn't flag, and checks the release's checksum and signature. If you download the zip in a browser, right-click Ebb and choose Open the first time.</p></details>
+      <details><summary>What about pnpm, Docker and Go caches?</summary><p>Those are cleared with the tool's own command, like <code>pnpm store prune</code>. Ebb shows the command and its size, and leaves running it to you.</p></details>
+      <details><summary>How do I remove it?</summary><p><code>curl -fsSL https://ebb.serveka.com/install.sh | sh -s -- --uninstall</code> removes the app, the commands and the daily agent. Add <code>--purge</code> for settings and history too.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <h2 class="reveal">Let the tide <em>go out.</em></h2>
+    <p class="sub reveal" style="margin:0 auto">One command. Nothing changes until you say so.</p>
+    <div class="install reveal">
+      <code><span class="prompt">$ </span>curl -fsSL https://ebb.serveka.com/install.sh | sh</code>
+      <button class="copy" data-copy="curl -fsSL https://ebb.serveka.com/install.sh | sh">Copy</button>
+    </div>
+  </div>
+  <div class="sea" aria-hidden="true">
+    <svg class="w2" viewBox="0 0 2880 340" preserveAspectRatio="none"><path fill="#0A4A57" d="M0 200 C240 160 480 240 720 200 S1200 160 1440 200 S1920 240 2160 200 S2640 160 2880 200 V340 H0Z"/></svg>
+    <svg class="w1" viewBox="0 0 2880 340" preserveAspectRatio="none"><path fill="#062530" d="M0 250 C240 220 480 280 720 250 S1200 220 1440 250 S1920 280 2160 250 S2640 220 2880 250 V340 H0Z"/></svg>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="assets/icon.svg" alt="" style="width:22px;height:22px">Ebb</a>
+    <span>Free and open source under MIT. Made by Rajendra Prajapat.</span>
+    <span class="sp"></span>
+    <a href="https://github.com/rajpra808/ebb">GitHub</a>
+    <a href="https://github.com/rajpra808/ebb/releases">Releases</a>
+    <a href="https://github.com/rajpra808/ebb/issues">Issues</a>
+  </div>
+</footer>
+
+<script src="script.js" defer></script>
 </body>
 </html>
