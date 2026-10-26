@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test ScanCore, EbbClean and the CLI
+        run: swift test
+      - name: Test the app's model layer
+        working-directory: app
+        run: swift test
+      - name: Build the app
+        run: ./app/scripts/bundle.sh
+
+  linux:
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install lsof and git
+        run: apt-get update -qq && apt-get install -y -qq lsof git
+      - name: Test
+        run: swift test

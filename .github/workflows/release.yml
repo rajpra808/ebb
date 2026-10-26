@@ -1,0 +1,50 @@
+name: Release
+
+# Push a tag like v0.2.0 to build and publish a release. The tag must match
+# the version in Sources/EbbCLI/Ebb.swift.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          grep -q "version: \"$version\"" Sources/EbbCLI/Ebb.swift \
+            || { echo "Tag $GITHUB_REF_NAME doesn't match the CLI version"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Test
+        run: swift test
+
+      - name: Build Ebb.app (Apple silicon and Intel)
+        run: EBB_VERSION="$VERSION" EBB_UNIVERSAL=1 ./app/scripts/bundle.sh
+
+      - name: Package
+        run: |
+          mkdir dist
+          ditto -c -k --keepParent app/build/Ebb.app dist/Ebb.zip
+          tar -C app/build/Ebb.app/Contents/Helpers -czf dist/ebb-cli-macos.tar.gz ebb
+          cd dist
+          for file in Ebb.zip ebb-cli-macos.tar.gz; do shasum -a 256 "$file" > "$file.sha256"; done
+          cat *.sha256
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Ebb $VERSION" \
+            --notes "Install or update: \`curl -fsSL https://ebb.serveka.com/install.sh | sh\`
+
+          Ebb is signed ad hoc, not notarized. The install script downloads with curl, which macOS doesn't flag, so the app opens normally. If you download Ebb.zip in a browser instead, right-click Ebb.app and choose Open the first time.
+
+          Checksums are attached as .sha256 files."
