@@ -5,6 +5,20 @@ import Foundation
 public protocol TrashBin: Sendable {
     /// Moves `path` to the Trash and returns where it ended up.
     func moveToTrash(_ path: String) throws -> String
+
+    /// Whether `path` is inside a Trash folder. Emptying only ever removes
+    /// paths that pass this, so a damaged history file can't point it at
+    /// anything else.
+    func isInTrash(_ path: String) -> Bool
+}
+
+extension TrashBin {
+    public func isInTrash(_ path: String) -> Bool {
+        // ~/.Trash, and /Volumes/<disk>/.Trashes/<uid> on other disks.
+        let components = path.split(separator: "/").map(String.init)
+        guard let index = components.firstIndex(where: { $0 == ".Trash" || $0 == ".Trashes" }) else { return false }
+        return index < components.count - 1 && !components.contains("..")
+    }
 }
 
 /// The user's Trash, through Finder's own mechanism (`FileManager.trashItem`),
@@ -30,6 +44,7 @@ public enum CleanError: Error, Equatable, CustomStringConvertible {
     case notInTrash(String)
     case originalExists(String)
     case unknownClean(String)
+    case notATrashPath(String)
 
     public var description: String {
         switch self {
@@ -38,6 +53,7 @@ public enum CleanError: Error, Equatable, CustomStringConvertible {
         case .notInTrash(let path): return "\(path) is no longer in the Trash"
         case .originalExists(let path): return "something already exists at \(path)"
         case .unknownClean(let id): return "no clean with id \(id) in the history"
+        case .notATrashPath(let path): return "\(path) isn't in the Trash, so it was left alone"
         }
     }
 }

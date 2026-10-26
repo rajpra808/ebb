@@ -9,6 +9,13 @@ public struct CleanRecord: Codable, Equatable, Sendable, Identifiable {
         public let categoryID: String
         public let allocatedBytes: Int64
         public var restoredAt: Date?
+        /// When the user had Ebb remove it from the Trash for good.
+        public var emptiedAt: Date?
+
+        /// Still sitting in the Trash, so it can be put back or emptied.
+        public var isWaitingInTrash: Bool {
+            restoredAt == nil && emptiedAt == nil && FileManager.default.fileExists(atPath: trashPath)
+        }
     }
 
     public let id: String
@@ -65,9 +72,7 @@ public struct CleanHistory: Sendable {
     /// Bytes from Ebb cleans that are still in the Trash (not put back, not
     /// emptied).
     public func bytesStillInTrash() throws -> Int64 {
-        try load().flatMap(\.entries)
-            .filter { $0.restoredAt == nil && FileManager.default.fileExists(atPath: $0.trashPath) }
-            .reduce(0) { $0 + $1.allocatedBytes }
+        try load().flatMap(\.entries).filter(\.isWaitingInTrash).reduce(0) { $0 + $1.allocatedBytes }
     }
 
     private struct Envelope: Codable {

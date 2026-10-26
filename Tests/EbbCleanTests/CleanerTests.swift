@@ -42,7 +42,7 @@ final class CleanFixture {
         try? FileManager.default.removeItem(atPath: base)
     }
 
-    var trash: FolderTrash { FolderTrash(folder: base + "/Trash") }
+    var trash: FolderTrash { FolderTrash(folder: base + "/.Trash") }
     var history: CleanHistory { CleanHistory(fileURL: URL(fileURLWithPath: base + "/support/history.json")) }
 
     @discardableResult
@@ -207,6 +207,58 @@ struct CleanerTests {
         #expect(try fixture.history.bytesStillInTrash() == 0)
     }
 
+    @Test("Emptying removes only Ebb's own items from the Trash, for good")
+    func emptyTrash() async throws {
+        let fixture = try CleanFixture()
+        let items = try await fixture.scannedItems()
+        let cleaner = try fixture.cleaner()
+        let report = try await cleaner.clean(items, source: "test")
+        // Something the user put in the Trash themselves.
+        try FileManager.default.createDirectory(atPath: fixture.trash.folder, withIntermediateDirectories: true)
+        let theirs = fixture.trash.folder + "/their-own-file.txt"
+        FileManager.default.createFile(atPath: theirs, contents: Data("keep".utf8))
+
+        let emptied = try cleaner.emptyTrash()
+        #expect(emptied.removedCount == 2)
+        #expect(emptied.freedBytes == report.movedBytes)
+        #expect(emptied.failed.isEmpty)
+        for moved in report.moved { #expect(!FileManager.default.fileExists(atPath: moved.trashPath)) }
+        #expect(FileManager.default.fileExists(atPath: theirs))
+        #expect(try fixture.history.bytesStillInTrash() == 0)
+        #expect(try fixture.history.load().first?.entries.allSatisfy { $0.emptiedAt != nil } == true)
+
+        // Emptied items can't be put back, and a second empty does nothing.
+        let id = try #require(report.cleanID)
+        #expect(try cleaner.putBack(cleanID: id).restored.isEmpty)
+        #expect(try cleaner.emptyTrash().removedCount == 0)
+    }
+
+    @Test("Emptying refuses paths that aren't in a Trash folder")
+    func emptyTrashChecksPaths() throws {
+        let fixture = try CleanFixture()
+        let outside = try fixture.file("Documents/important.txt", daysOld: 1)
+        let record = CleanRecord(id: "x", date: Date(), source: "test", entries: [
+            .init(originalPath: outside, trashPath: outside, categoryID: "x", allocatedBytes: 4096,
+                  restoredAt: nil, emptiedAt: nil),
+        ])
+        try fixture.history.save([record])
+
+        let report = try fixture.cleaner().emptyTrash()
+        #expect(report.removedCount == 0)
+        #expect(report.failed.count == 1)
+        #expect(FileManager.default.fileExists(atPath: outside))
+    }
+
+    @Test("Trash paths are recognized, lookalikes aren't")
+    func trashPaths() {
+        let trash = SystemTrash()
+        #expect(trash.isInTrash("/Users/me/.Trash/node_modules"))
+        #expect(trash.isInTrash("/Volumes/Disk/.Trashes/501/build"))
+        #expect(!trash.isInTrash("/Users/me/.Trash"))
+        #expect(!trash.isInTrash("/Users/me/code/.Trash-ish/x"))
+        #expect(!trash.isInTrash("/Users/me/.Trash/../Documents"))
+    }
+
     @Test("Unknown clean ids are an error")
     func unknownID() throws {
         let fixture = try CleanFixture()
@@ -218,7 +270,8 @@ struct CleanerTests {
         let fixture = try CleanFixture()
         let record = CleanRecord(id: "20261025-120000-abcd", date: Date(timeIntervalSince1970: 1_790_000_000),
                                  source: "review", entries: [
-            .init(originalPath: "/a", trashPath: "/t/a", categoryID: "x", allocatedBytes: 5, restoredAt: nil),
+            .init(originalPath: "/a", trashPath: "/t/a", categoryID: "x", allocatedBytes: 5, restoredAt: nil,
+                  emptiedAt: nil),
         ])
         try fixture.history.save([record])
         #expect(try fixture.history.load() == [record])

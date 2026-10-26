@@ -61,7 +61,7 @@ public struct Cleaner: Sendable {
                 let trashPath = try trash.moveToTrash(item.path)
                 let entry = CleanRecord.Entry(
                     originalPath: item.path, trashPath: trashPath, categoryID: item.categoryID,
-                    allocatedBytes: bytes, restoredAt: nil
+                    allocatedBytes: bytes, restoredAt: nil, emptiedAt: nil
                 )
                 try history.update { records in
                     if let index = records.firstIndex(where: { $0.id == id }) { records[index].entries.append(entry) }
@@ -97,7 +97,8 @@ public struct Cleaner: Sendable {
                 throw CleanError.unknownClean(cleanID)
             }
             var report = RestoreReport()
-            for (position, entry) in records[index].entries.enumerated() where entry.restoredAt == nil {
+            for (position, entry) in records[index].entries.enumerated()
+            where entry.restoredAt == nil && entry.emptiedAt == nil {
                 if let paths, !paths.contains(entry.originalPath) { continue }
                 do {
                     try Self.move(from: entry.trashPath, to: entry.originalPath)
@@ -105,6 +106,40 @@ public struct Cleaner: Sendable {
                     report.restored.append(entry.originalPath)
                 } catch {
                     report.failed.append((entry.originalPath, String(describing: error)))
+                }
+            }
+            return report
+        }
+    }
+
+    public struct EmptyReport: Equatable, Sendable {
+        public var removedCount = 0
+        public var freedBytes: Int64 = 0
+        public var failed: [String] = []
+    }
+
+    /// Removes for good what Ebb moved to the Trash and is still there.
+    /// Only Ebb's own items, never anything else in the Trash, and only
+    /// paths inside a Trash folder. This can't be undone.
+    public func emptyTrash(date: Date = Date()) throws -> EmptyReport {
+        try history.update { records in
+            var report = EmptyReport()
+            for index in records.indices {
+                for position in records[index].entries.indices {
+                    let entry = records[index].entries[position]
+                    guard entry.isWaitingInTrash else { continue }
+                    guard trash.isInTrash(entry.trashPath) else {
+                        report.failed.append(CleanError.notATrashPath(entry.trashPath).description)
+                        continue
+                    }
+                    do {
+                        try FileManager.default.removeItem(atPath: entry.trashPath)
+                        records[index].entries[position].emptiedAt = date
+                        report.removedCount += 1
+                        report.freedBytes += entry.allocatedBytes
+                    } catch {
+                        report.failed.append("\(entry.trashPath): \(error.localizedDescription)")
+                    }
                 }
             }
             return report
