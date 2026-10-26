@@ -1,188 +1,255 @@
-# Ebb
+<p align="center">
+  <a href="https://ebb.serveka.com"><img src="docs/assets/banner.svg" alt="Ebb. Space recedes. Your work stays." width="100%"></a>
+</p>
 
-Your Mac's daily cleanup agent. It knows what you're working on and only
-suggests what's safe.
+<p align="center">
+  <a href="https://github.com/rajpra808/ebb/actions/workflows/ci.yml"><img src="https://github.com/rajpra808/ebb/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/rajpra808/ebb/releases/latest"><img src="https://img.shields.io/github/v/release/rajpra808/ebb?color=0E5E6F&label=release" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/macOS-14%2B-0E5E6F?logo=apple&logoColor=white" alt="macOS 14 or later">
+  <img src="https://img.shields.io/badge/Swift-5.10%2B-3B8F9A?logo=swift&logoColor=white" alt="Swift 5.10 or later">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8FC1C9" alt="MIT license"></a>
+</p>
 
-Developer tools leave a lot behind: `node_modules` in projects you finished
-months ago, virtual environments, package manager caches, old installers.
-Ebb finds that space, tells you what each item is and whether it comes back,
-and leaves anything you're actively working on alone.
+<p align="center">
+  <b>Your Mac's daily cleanup agent. It knows what you're working on and only suggests what's safe.</b><br>
+  Old <code>node_modules</code>, virtual envs, build output, package caches, Xcode and Docker leftovers, AI agent history.<br>
+  Free and open source. No account. Nothing leaves your Mac.
+</p>
 
-Ebb is free and open source (MIT). No account, no telemetry, nothing leaves
-your Mac.
+<p align="center">
+  <a href="https://ebb.serveka.com"><b>Website</b></a> ·
+  <a href="#install"><b>Install</b></a> ·
+  <a href="#how-ebb-decides-what-youre-working-on"><b>How it decides</b></a> ·
+  <a href="#safety-promises"><b>Safety</b></a> ·
+  <a href="docs/ARCHITECTURE.md"><b>Architecture</b></a>
+</p>
 
-> **Status:** early. There's an `ebb` command line tool and the menu bar app
-> (see [app/](app/README.md)) with a daily agent, notifications, settings
-> and a first-run flow. Cleaning moves items to the Trash, logs it and can
-> put everything back. Signing, notarization and a Homebrew cask come next.
-> See [docs/SPEC.md](docs/SPEC.md) for the plan.
+<br>
 
-## What it looks like
+<table>
+<tr>
+<td width="58%"><img src="docs/assets/terminal.svg" alt="ebb scan in a terminal: 16.0 GB safe to clear, 35 active projects skipped."></td>
+<td width="42%" align="center"><img src="docs/assets/menubar.png" alt="The menu bar popover: 6.7 GB can be cleared safely, with Review and Move to Trash." width="340"></td>
+</tr>
+<tr>
+<td><sub>A real <code>ebb scan</code> on the author's Mac: 16.0 GB that comes back on its own, with 35 projects in active use left completely alone.</sub></td>
+<td align="center"><sub>The menu bar, once a day. Nothing moves until you click.</sub></td>
+</tr>
+</table>
 
-This is a real run on the author's Mac (home folder, 34 active projects):
+## Install
 
+```sh
+curl -fsSL https://ebb.serveka.com/install.sh | sh
 ```
-$ ebb scan
-  claude-code-history     2.1 MB   1 item
-  agent-history         129.8 MB   100 items
-  local-models          147.8 MB   2 items
-  python-venvs            1.0 GB   1 inactive project
-  node-leftovers         ~8.9 GB   18 inactive projects
-  build-outputs          ~1.6 GB   1 inactive project
-  package-caches         ~4.5 GB   Bun, pip, Homebrew, CocoaPods, Go modules
-  temp-files               41 KB   1 item
-  old-installers          3.6 MB   1 item
-  duplicates             11.1 GB   282 items
 
-  skipped                          34 active projects, 461 other items
-  safe to clear          16.0 GB
-  worth a look           11.4 GB   not pre-selected
+That downloads the latest [release](https://github.com/rajpra808/ebb/releases/latest), checks its SHA-256,
+puts **Ebb.app** in Applications and links the `ebbctl` command (and `ebb`, unless something else owns that name).
+It's [a short script](landing/install.sh); read it first if you like.
 
-  Scanned in 27.0s. Nothing was changed. ~ means estimated.
-```
+> [!NOTE]
+> Ebb isn't notarized by Apple yet. Downloads with `curl` aren't flagged by macOS, so the app opens normally.
+> If you download `Ebb.zip` in a browser instead, right-click **Ebb.app** and choose **Open** the first time.
 
-"Safe to clear" counts only pre-selected items. "Worth a look" is things
-that can't come back (old chats, duplicates) or that you may still want
-(models); Ebb lists them but never pre-selects them.
+Requires macOS 14 or later, on Apple silicon or Intel. To remove it:
+`curl -fsSL https://ebb.serveka.com/install.sh | sh -s -- --uninstall` (add `--purge` to drop settings and history).
 
-`~` marks sizes that are estimates, usually because files are hard-linked
-with something outside the item (pnpm does this).
+## Why
 
-Other commands:
+Package managers, build tools, local models and AI agents quietly eat 20 to 100 GB on a developer's Mac.
+General cleaners don't know developer folders, and one scary "Clean" button isn't something you want anywhere near your code.
 
-```
-ebb scan --details      # every item with its path, size, comes-back label and reason,
-                        # then everything skipped and why
-ebb scan --json         # the full result as JSON (format documented in docs/ARCHITECTURE.md)
-ebb clean               # move the pre-selected items to the Trash, after asking
-ebb clean --select node-leftovers,python-venvs --dry-run
-ebb history             # every clean, and what's still in the Trash
-ebb undo                # put the last clean back (or `ebb undo <id>`)
-ebb active              # projects Ebb considers active, and the signals behind each
-ebb rule add '\.mov$' --in ~/Movies --older 90d --larger 500MB --name "Old recordings"
-ebb rule add '^client-' --in ~/code --never-touch
-ebb rule list
-```
+|  | Ebb |
+|---|---|
+| **Runs by itself** | A daily agent scans when the Mac is idle and sends one notification, only when at least 2 GB can go. |
+| **Knows your active work** | Git, edits, Claude Code and Codex sessions, running dev servers and editor recents keep a project off limits. |
+| **Explains every item** | What it is, its size on disk, whether it comes back, and why it's safe. |
+| **Undoable** | Cleaning moves to the Trash and is logged. Put back one item or a whole clean. |
+| **AI-era aware** | Old agent chats, unused local models and Cursor workspace storage, never pre-selected. |
+
+Tools like [npkill](https://github.com/voidcosmos/npkill) and [kondo](https://github.com/tbillington/kondo) are great at finding build
+folders when you ask, and [DevCleaner](https://github.com/vashpan/xcode-dev-cleaner) is great at Xcode. Ebb is the one you don't have to
+remember, and it skips the projects you're in the middle of.
+
+## See it
+
+<table>
+<tr><td colspan="2"><img src="docs/assets/recommendations.png" alt="Recommendations: every item with a checkbox, its path, why it's safe and whether it comes back."></td></tr>
+<tr>
+<td width="50%"><img src="docs/assets/active.png" alt="Active projects and the signals that protect each one."></td>
+<td width="50%"><img src="docs/assets/history.png" alt="History: every clean, with Put all back."></td>
+</tr>
+<tr>
+<td><sub><b>Active projects.</b> Exactly why each project is protected, and "Always keep" to pin one.</sub></td>
+<td><sub><b>History.</b> Every clean, what's still in the Trash, and Put back.</sub></td>
+</tr>
+</table>
+
+<sub>Screenshots use a demo home folder.</sub>
+
+## How Ebb decides what you're working on
+
+A project is any folder with a marker (`.git`, `package.json`, `pyproject.toml`, `Cargo.toml`, `Package.swift`, `go.mod`,
+`*.xcodeproj`...). If **any** of these is true in the last 14 days (7 or 30 if you prefer), the whole project is skipped:
+
+| Signal | What Ebb looks at |
+|---|---|
+| ✎ **File edits** | A source file changed, outside `node_modules`, `dist` and other build folders |
+| ⑂ **Git** | `.git/HEAD`, `index` or `logs/HEAD` moved: a commit, checkout, stage or pull |
+| `›_` **Agent sessions** | A Claude Code session for the folder, or a Codex session whose `cwd` is inside it |
+| ∿ **Running** | A shell, dev server, `node`, `python` or `claude` has its working folder inside it right now |
+| ▢ **Editor** | Opened in VS Code, Cursor, Windsurf or Xcode |
+| ⌖ **Pinned** | You chose "Always keep" |
+
+`ebbctl active` lists every active project and the signals behind it.
+
+## What it can clear
+
+| Category | Examples | Comes back | Rule | Pre-selected |
+|---|---|:---:|---|:---:|
+| Node / JS leftovers | `node_modules`, `.next`, `.turbo`, `dist`, `build` | ✅ reinstall | Project inactive | ✓ |
+| Python virtual envs | `.venv`, `venv` with `pyvenv.cfg` | ✅ `pip install` | Project inactive | ✓ |
+| Other build output | Rust `target`, Swift `.build`, Gradle | ✅ rebuild | Project inactive | ✓ |
+| Package caches | npm, pnpm, Yarn, Bun, pip, Homebrew, CocoaPods, Go | ✅ refills | Always eligible | ✓ |
+| Xcode | DerivedData, old device support, dead simulators | ✅ rebuild | Project inactive or gone | ✓ |
+| Docker | Untagged images, unused build cache | ✅ rebuild | Not used by any container | ✓ |
+| Temp files | `$TMPDIR` (and `~/Library/Caches` if you opt in) | ✅ apps recreate | 3 days untouched, not open | ✓ |
+| Old installers | `.dmg`, `.pkg`, downloaded `.zip` in Downloads | ⬇️ re-download | Older than 30 days | ✓ |
+| AI agent history | Claude Code, Codex, Gemini CLI, Cursor | ⛔ gone | Older than 30 days | |
+| Local AI models | Ollama, LM Studio, Hugging Face | ⬇️ re-download | Not loaded in 30 days | |
+| Xcode archives | `.xcarchive` | ⛔ gone | Older than 90 days | |
+| Duplicates | Identical files in Downloads, Desktop, Documents | ⛔ gone | Same SHA-256, oldest kept | |
+
+Things that can't come back are listed under "worth a look" and never pre-selected.
+[docs/CATEGORIES.md](docs/CATEGORIES.md) has the details of each one.
 
 ## Safety promises
 
-These hold for every line of code, and the never-touch test suite checks them
-before each release.
+> [!IMPORTANT]
+> These hold for every line of code, and a never-touch test suite checks them before every release.
 
-1. **Nothing is deleted, nothing happens on its own.** Scans are read-only.
-   Cleaning only moves items to the Trash, only after you confirm, checks
-   each item again right before moving it, and logs every move so `ebb undo`
-   or History can put it back. Ebb never empties the Trash. Items that need a
-   tool's own command (`pnpm store prune`, Docker prune) are shown with the
-   command; Ebb doesn't run it.
-2. **Your active work is off limits.** A project counts as active if, in the
-   last 14 days, a source file changed, git recorded a commit, checkout or
-   stage, Claude Code or Codex had a session there, or it was open in VS Code,
-   Cursor or Xcode. A process running inside it right now counts too, and so
-   does anything you marked "Always keep". Nothing
-   inside an active project is ever suggested. `ebb active` shows exactly why
-   each project counts.
-3. **A built-in never-touch list always wins**, even over your own rules:
-   `.git`, `.env*`, `CLAUDE.md` and other agent memory files,
-   `~/.claude/settings*.json`, `.credentials*`, `~/.codex/config*`, SSH and
-   cloud credentials, keychains, `/System`, and other users' home folders.
-4. **Recent and open files are skipped.** Anything changed in the last 24
-   hours, or open in a running app (checked with `lsof`), is left out.
-5. **Symlinks are never followed** out of a scanned folder, and external disks
-   and network volumes are skipped unless you ask.
-6. **When unsure, Ebb leaves it out.** A folder named `build` is only
-   suggested if git confirms nothing in it is tracked. A `.zip` in Downloads
-   is only suggested if macOS marked it as downloaded. Folders Ebb can't fully
-   read are skipped.
+1. **Nothing happens on its own.** Scans are read-only. Cleaning needs your click, only moves to the Trash, and every move is
+   logged so it can be put back. Ebb never deletes and never empties the Trash.
+2. **Checked again before moving.** Right before an item moves, Ebb re-checks open files, recent changes and whether its project
+   became active since the scan.
+3. **A built-in never-touch list always wins**, even over your own rules: `.git`, `.env*`, `CLAUDE.md` and agent memory,
+   `~/.claude/settings*.json`, `.credentials*`, `~/.codex/config*`, SSH and cloud credentials, keychains, `/System`, other users.
+4. **Recent and open files stay.** Anything changed in the last 24 hours or open in an app is left out.
+5. **Symlinks are never followed**, and other disks are skipped unless you ask.
+6. **When unsure, it leaves it.** A `build` folder git tracks, an unreadable folder, a `.zip` you made yourself: all skipped.
+7. **Tools clean their own caches.** For the pnpm store, Docker and Go modules, Ebb shows the command (`pnpm store prune`...) and
+   leaves running it to you.
 
-## How it's different
+## How a scan works
 
-Tools like [npkill](https://github.com/voidcosmos/npkill) and
-[kondo](https://github.com/tbillington/kondo) are good at finding build
-folders when you ask. Ebb aims to be the thing you don't have to remember:
-
-- **A daily agent** that scans in the background and notifies you once, only
-  when it's worth it.
-- **Active-work protection** from file activity, git, AI agent sessions,
-  running processes and editor recents.
-- **AI tool cleanup:** old Claude Code, Codex, Gemini and Cursor histories and
-  unused local models, never pre-selected.
-
-## Install and build
-
-Ebb needs macOS 14 or later and Swift 5.10 or later (Xcode or the Command
-Line Tools).
-
-```
-git clone <repo-url> ebb && cd ebb
-swift build -c release
-.build/release/ebb scan
+```mermaid
+flowchart LR
+    A["Find projects"] --> B{"Active?<br/>git · edits · agents<br/>processes · editors · pins"}
+    B -- yes --> S["Skip the whole project"]
+    B -- no --> C["Collect candidates<br/>categories + your rules"]
+    C --> D["Safety gate<br/>never-touch · open files<br/>24 h · protected inside"]
+    D --> E["Measure on-disk size<br/>hard links once · APFS clones"]
+    E --> F["Result<br/>safe to clear · worth a look"]
+    F -. your click .-> G["Re-check → Trash → History"]
 ```
 
-For Full Disk Access (so Ebb can see everything in your home folder), see
-[cli/mac](cli/mac/README.md). Linux notes are in [cli/linux](cli/linux/README.md).
+The scanner is a read-only Swift library (`ScanCore`); moving to the Trash lives in a separate module (`EbbClean`).
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) walks through each step and the JSON format.
 
-### Running the tests
+## The command line
 
-```
-./scripts/test.sh
-```
-
-With Xcode installed this is the same as `swift test`. With only the Command
-Line Tools, plain `swift test` finds no tests because the tools keep
-swift-testing outside the default search path; the script points the
-compiler at it.
-
-## Adding a category
-
-Categories are data. Most new categories are one entry in
-[`Sources/ScanCore/Categories/categories.json`](Sources/ScanCore/Categories/categories.json):
-
-```json
-{
-  "id": "uv-cache",
-  "number": 8,
-  "title": "uv cache",
-  "summary": "Packages downloaded by uv. They refill on the next install.",
-  "comesBack": { "kind": "yes", "howTo": "refilled on the next uv sync" },
-  "rule": "Always eligible",
-  "preselected": true,
-  "collector": {
-    "type": "knownPaths",
-    "paths": [{ "label": "uv", "path": "~/.cache/uv" }]
-  }
-}
+```sh
+ebbctl scan                    # what's safe to clear (read-only)
+ebbctl scan --details          # every item with its reason, and everything skipped
+ebbctl scan --json             # the full result for scripts
+ebbctl active                  # active projects and why
+ebbctl clean --dry-run         # what would go to the Trash
+ebbctl clean                   # move the pre-selected items, after asking
+ebbctl history                 # every clean, and what's still in the Trash
+ebbctl undo                    # put the last clean back
+ebbctl rule add '\.mov$' --in ~/Movies --older 90d --larger 500MB --name "Old recordings"
 ```
 
-Three collector types exist: `projectLeftovers` (folders inside inactive
-projects), `knownPaths` (fixed cache locations) and `folderContents` (old
-entries in a folder such as Downloads). Every candidate still passes the same
-safety checks, whatever the category says. [docs/CATEGORIES.md](docs/CATEGORIES.md)
-has the full format, and [CONTRIBUTING.md](CONTRIBUTING.md) describes what a
-pull request needs, including a fixture test.
+`ebb` is the same tool. MacTeX also ships a command called `ebb`; if yours comes first on the PATH, use `ebbctl`.
 
-## Repository layout
+<details>
+<summary><b>Custom rules</b></summary>
+<br>
+
+Add your own patterns. `suggest` rules list matches under "worth a look" and are never pre-selected; `--never-touch` rules
+protect matches from everything else.
+
+```sh
+ebbctl rule add '^Screen Recording .*\.mov$' --in ~/Desktop --older 14d --name "Old screen recordings"
+ebbctl rule add '^client-' --in ~/code --never-touch
+ebbctl rule list
+```
+
+Rules live in `~/Library/Application Support/Ebb/rules.json`. Invalid patterns are refused, and matching is time-boxed so a bad
+pattern can't hang a scan. See [docs/RULES.md](docs/RULES.md).
+</details>
+
+## Questions
+
+<details>
+<summary><b>Why does it need Full Disk Access?</b></summary>
+<br>
+macOS hides parts of <code>~/Library</code> and some tool folders from apps without it. Without access Ebb still works, but it can't
+see or vouch for those folders, so it skips them. The first-run screen walks you through it.
+</details>
+
+<details>
+<summary><b>Why not the App Store?</b></summary>
+<br>
+Full Disk Access and moving files to the Trash across the disk don't fit the App Store sandbox.
+</details>
+
+<details>
+<summary><b>Does it send anything anywhere?</b></summary>
+<br>
+No. No account, no analytics, no network calls. The only processes it starts are <code>lsof</code>, <code>git ls-files</code>, and, if
+installed, <code>docker system df</code> and <code>xcrun simctl list</code>, all read-only.
+</details>
+
+<details>
+<summary><b>How big is the difference between "size" and what I get back?</b></summary>
+<br>
+Ebb reports what clearing frees: allocated blocks, with hard-linked data counted once and blocks shared with APFS clones left out.
+pnpm, for example, shares files between projects, so those sizes are marked <code>~</code> (estimated).
+</details>
+
+<details>
+<summary><b>Does it run on Linux?</b></summary>
+<br>
+The CLI builds and its tests pass on Linux, with fewer features. The app and the daily agent are macOS only.
+See <a href="cli/linux/README.md">cli/linux</a>.
+</details>
+
+## Build from source
+
+```sh
+git clone https://github.com/rajpra808/ebb && cd ebb
+swift build -c release && .build/release/ebb scan      # the CLI
+./app/scripts/bundle.sh && open app/build/Ebb.app      # the app
+./scripts/test.sh                                      # tests (or `swift test` with Xcode)
+```
 
 ```
-Sources/ScanCore/    the scanning library (no UI, read-only): categories,
-                     measuring, projects, rules, safety
+Sources/ScanCore/    the scanner: categories, projects, signals, measuring, rules, safety (read-only)
 Sources/EbbClean/    move to Trash, the clean log, put back
-Sources/EbbCLI/      the ebb commands, as a library so they can be tested
-Sources/ebb/         the executable entry point
-Tests/               ScanCore and CLI tests, with fixture home folders
-cli/mac, cli/linux   per-platform install notes
-app/                 the menu bar app (its own Swift package), with the UI design
-landing/             the landing page (not started)
+Sources/EbbCLI/      the ebbctl commands
+app/                 the menu bar app (SwiftUI), its own Swift package
+landing/             ebb.serveka.com and install.sh
 docs/                spec, architecture, categories, rules
 ```
 
-## Docs
+## Contributing
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how a scan works, and the JSON format
-- [docs/CATEGORIES.md](docs/CATEGORIES.md): every category and the catalog format
-- [docs/RULES.md](docs/RULES.md): custom regex rules
-- [docs/SPEC.md](docs/SPEC.md): the product spec
+Categories are data: most new ones are a single entry in
+[`categories.json`](Sources/ScanCore/Categories/categories.json) plus a fixture test.
+[CONTRIBUTING.md](CONTRIBUTING.md) explains what a pull request needs. Ideas and bug reports are very welcome in
+[Issues](https://github.com/rajpra808/ebb/issues).
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+[MIT](LICENSE). Made by [Rajendra Prajapat](https://github.com/rajpra808) at Serveka.

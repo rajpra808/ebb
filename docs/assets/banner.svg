@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" width="1280" height="400" role="img" aria-label="Ebb. Space recedes. Your work stays.">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0E5E6F"/>
+      <stop offset="1" stop-color="#083C47"/>
+    </linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.06"/>
+    </linearGradient>
+    <style>
+      .wave { fill: none; stroke-linecap: round; }
+      @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-160px); } }
+      @keyframes recede { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
+      .tide { animation: drift 9s linear infinite; }
+      .tide.slow { animation-duration: 14s; }
+      .breath { animation: recede 6s ease-in-out infinite; }
+      @media (prefers-reduced-motion: reduce) { .tide, .breath { animation: none; } }
+      text { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Helvetica, Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="400" rx="24" fill="url(#sea)"/>
+
+  <!-- The tide going out, along the bottom. -->
+  <g class="breath" opacity="0.5">
+    <g class="tide slow">
+      <path class="wave" stroke="#3B8F9A" stroke-width="3"
+            d="M0 330 q40 -18 80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0"/>
+    </g>
+  </g>
+  <g class="breath" opacity="0.35" style="animation-delay: -2s">
+    <g class="tide">
+      <path class="wave" stroke="#8FC1C9" stroke-width="2"
+            d="M0 360 q40 -14 80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0"/>
+    </g>
+  </g>
+
+  <!-- Icon -->
+  <g transform="translate(96 96)">
+    <rect width="168" height="168" rx="40" fill="url(#tile)" stroke="#FFFFFF" stroke-opacity="0.18"/>
+    <g class="wave" stroke-width="10">
+      <path d="M30 66 q12 -13 24 0 t24 0 t24 0 t24 0 t24 0" stroke="#FFFFFF"/>
+      <path d="M30 90 q12 -13 24 0 t24 0 t24 0 t24 0 t24 0" stroke="#FFFFFF" stroke-opacity="0.85"/>
+      <path d="M54 114 q12 -13 24 0 t24 0 t24 0" stroke="#8FC1C9"/>
+    </g>
+  </g>
+
+  <text x="312" y="168" fill="#FFFFFF" font-size="92" font-weight="800" letter-spacing="-3">Ebb</text>
+  <text x="316" y="222" fill="#FFFFFF" font-size="34" font-weight="600">Space recedes. Your work stays.</text>
+  <text x="316" y="264" fill="#CFE6EA" font-size="22">The daily cleanup agent for developers' Macs. Free and open source.</text>
+</svg>
