@@ -75,7 +75,7 @@ public struct ScanOptions: Sendable {
     var recentlyChangedSince: Date { now.addingTimeInterval(-recentChangeWindow) }
 
     /// Expands `~` and `$TMPDIR` at the start of a catalog or rule path.
-    func expand(_ path: String) -> String {
+    public func expand(_ path: String) -> String {
         if path == "~" { return home }
         if path.hasPrefix("~/") { return Paths.join(home, String(path.dropFirst(2))) }
         if path == "$TMPDIR" { return temporaryDirectory }

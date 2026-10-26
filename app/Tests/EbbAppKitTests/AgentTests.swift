@@ -230,3 +230,30 @@ struct AgentTests {
         #expect(model.result?.items.isEmpty == true)
     }
 }
+
+@Suite("Rule preview")
+struct RulePreviewTests {
+    @Test("The preview shows what the rule would suggest, and nothing protected")
+    func preview() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("ebb-preview-\(UUID().uuidString)").path
+        try FileManager.default.createDirectory(atPath: root + "/Users/me/Movies", withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        guard let resolved = realpath(root, nil) else { throw CocoaError(.fileNoSuchFile) }
+        let home = String(cString: resolved) + "/Users/me"
+        free(resolved)
+        let old = Date().addingTimeInterval(-90 * 86_400)
+        for name in ["a.mov", "b.mov", "keep.mp4"] {
+            let path = home + "/Movies/" + name
+            FileManager.default.createFile(atPath: path, contents: Data(repeating: 1, count: 60_000))
+            try FileManager.default.setAttributes([.modificationDate: old], ofItemAtPath: path)
+        }
+        let fresh = home + "/Movies/fresh.mov"
+        FileManager.default.createFile(atPath: fresh, contents: Data(repeating: 1, count: 60_000))
+
+        let rule = Rule(name: "movs", pattern: #"\.mov$"#, roots: [home + "/Movies"])
+        let result = await RulePreview.run(rule, home: home)
+        #expect(Set(result.matches.map { ($0.path as NSString).lastPathComponent }) == ["a.mov", "b.mov"])
+        #expect(result.skipped == 1, "the file changed today")
+        #expect(result.bytes > 0)
+    }
+}

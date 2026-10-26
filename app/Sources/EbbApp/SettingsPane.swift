@@ -216,12 +216,25 @@ private struct NeverTouchSection: View {
 private struct RulesSection: View {
     @Environment(AppModel.self) private var model
     @State private var rules: [Rule] = []
+    @State private var adding = false
+    @State private var problem: String?
 
     var body: some View {
         SettingsSection(title: "Custom rules",
-                        footnote: "Add rules with `ebb rule add <regex> --in <dir>`. Suggestions from rules are never pre-selected.") {
-            if rules.isEmpty {
-                Text("No custom rules.").foregroundStyle(.secondary)
+                        footnote: "Suggestions from rules are never pre-selected, and built-in protections always win. Also available as `ebbctl rule add`.") {
+            HStack {
+                Text(rules.isEmpty ? "No custom rules yet." : "\(rules.count) rule\(rules.count == 1 ? "" : "s")")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button {
+                    adding = true
+                } label: {
+                    Label("Add rule…", systemImage: "plus")
+                }
+                .buttonStyle(SecondaryButtonStyle(compact: true))
+            }
+            if let problem {
+                Text(problem).font(.caption).foregroundStyle(Theme.warning)
             }
             ForEach(rules) { rule in
                 HStack {
@@ -243,7 +256,22 @@ private struct RulesSection: View {
                 }
             }
         }
-        .onAppear(perform: reload)
+        .onAppear {
+            reload()
+            // `--show-window settings --new-rule` opens the editor straight away.
+            if CommandLine.arguments.contains("--new-rule") { adding = true }
+        }
+        .sheet(isPresented: $adding) {
+            RuleEditor(home: model.home) { rule in
+                do {
+                    try store.add(rule)
+                    problem = nil
+                } catch {
+                    problem = "Couldn't save the rule: \(error)"
+                }
+                reload()
+            }
+        }
     }
 
     private var store: RuleStore { RuleStore(fileURL: RuleStore.defaultLocation(home: model.home)) }
