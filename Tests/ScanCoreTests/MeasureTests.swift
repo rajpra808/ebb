@@ -111,6 +111,21 @@ struct MeasureTests {
     }
     #endif
 
+    @Test("A large ordinary file isn't mistaken for a clone")
+    func largeFileIsNotEstimated() async throws {
+        let fixture = try Fixture()
+        try fixture.project("code/app")
+        try fixture.file("code/app/node_modules/big.bin", size: 40_000_000)
+        try fixture.ageEverything()
+
+        let result = try await fixture.scan()
+        let modules = try #require(result.item(at: fixture.absolute("code/app/node_modules")))
+        #expect(modules.sharedBytes == 0)
+        #expect(!modules.isEstimated)
+        let expected = try fixture.allocatedSize(of: modules.path)
+        #expect(modules.allocatedBytes == expected)
+    }
+
     @Test("Measuring stops at protected names inside")
     func protectedDescendant() throws {
         let fixture = try Fixture()

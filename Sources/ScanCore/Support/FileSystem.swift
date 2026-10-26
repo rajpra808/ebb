@@ -137,26 +137,36 @@ enum FileSystem {
         #endif
     }
 
-    /// Bytes that belong to this file alone and would be freed by deleting it.
+    /// For an APFS clone, the bytes that belong to this file alone and would
+    /// be freed by deleting it. `nil` when the file isn't a clone (its
+    /// allocated size is what deleting frees) or the file system can't tell
+    /// (non-APFS, Linux).
     ///
-    /// APFS clones (`cp -c`, and pnpm on macOS) share blocks with other
-    /// files, so `st_blocks` overstates what deleting one copy gives back.
-    /// Returns `nil` where the file system can't tell us (non-APFS, Linux).
+    /// Clones (`cp -c`, and pnpm on macOS) share blocks with other files, so
+    /// `st_blocks` overstates what deleting one copy gives back. Only files
+    /// whose clone reference count is above 1 are treated as clones: for
+    /// ordinary files the private size can be a little below the allocated
+    /// size (preallocation), and that difference is freed too.
     static func privateAllocatedSize(atPath path: String) -> Int64? {
         #if canImport(Darwin)
         var request = attrlist()
         request.bitmapcount = u_short(ATTR_BIT_MAP_COUNT)
-        request.forkattr = attrgroup_t(ATTR_CMNEXT_PRIVATESIZE)
+        request.forkattr = attrgroup_t(ATTR_CMNEXT_PRIVATESIZE | ATTR_CMNEXT_CLONE_REFCNT)
 
-        // The kernel packs the reply: a u_int32_t length, then an off_t at
-        // byte 4. A Swift tuple would pad the off_t to byte 8, so use bytes.
-        var buffer = [UInt8](repeating: 0, count: 16)
+        // The reply is packed in attribute-bit order: a u_int32_t length,
+        // the off_t private size at byte 4, the u_int32_t clone count at 12.
+        // A Swift tuple would pad the off_t to byte 8, so use bytes.
+        var buffer = [UInt8](repeating: 0, count: 32)
         let options = UInt32(FSOPT_ATTR_CMN_EXTENDED | FSOPT_NOFOLLOW)
         let status = buffer.withUnsafeMutableBytes { raw in
             getattrlist(path, &request, raw.baseAddress, raw.count, options)
         }
         guard status == 0 else { return nil }
-        return buffer.withUnsafeBytes { $0.loadUnaligned(fromByteOffset: 4, as: Int64.self) }
+        return buffer.withUnsafeBytes { raw -> Int64? in
+            let cloneCount = raw.loadUnaligned(fromByteOffset: 12, as: UInt32.self)
+            guard cloneCount > 1 else { return nil }
+            return raw.loadUnaligned(fromByteOffset: 4, as: Int64.self)
+        }
         #else
         return nil
         #endif
