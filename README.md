@@ -17,6 +17,10 @@
 </p>
 
 <p align="center">
+  <sub>Built by <a href="https://serveka.com">Serveka Technologies</a>, the developers of <a href="https://morningzero.com"><b>MorningZero</b></a>.</sub>
+</p>
+
+<p align="center">
   <a href="https://ebb.serveka.com"><b>Website</b></a> ·
   <a href="https://ebb.serveka.com/docs/"><b>Docs</b></a> ·
   <a href="#install"><b>Install</b></a> ·
@@ -257,4 +261,5 @@ Categories are data: most new ones are a single entry in
 
 ## License
 
-[MIT](LICENSE). Made by [Rajendra Prajapat](https://github.com/rajpra808) at Serveka.
+[MIT](LICENSE). Made by [Rajendra Prajapat](https://github.com/rajpra808) at Serveka Technologies, the developers of
+[morningzero.com](https://morningzero.com).
