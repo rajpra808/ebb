@@ -65,6 +65,8 @@ h1 em { font-style: italic; color: var(--teal); }
 .copy { border: 0; cursor: pointer; padding: 11px 16px; border-radius: 10px; font: 650 14px/1 var(--sans); background: var(--coral); color: #fff; transition: transform .15s, background .2s; }
 .copy:hover { transform: translateY(-1px); }
 .copy.done { background: var(--aqua); }
+.ph-badge { display: inline-block; margin-top: 18px; line-height: 0; transition: transform .2s; }
+.ph-badge:hover { transform: translateY(-2px); }
 .checks { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 18px 0 0; padding: 0; list-style: none; font-size: 14.5px; color: var(--ink-2); }
 .checks li::before { content: "✓"; color: var(--aqua); font-weight: 800; margin-right: 7px; }
 

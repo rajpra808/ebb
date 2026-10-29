@@ -21,6 +21,10 @@
 </p>
 
 <p align="center">
+  <a href="https://www.producthunt.com/products/ebb?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-ebb-2" target="_blank" rel="noopener noreferrer"><img alt="Ebb - Automatic Mac cleanup for developers (free, open source) | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1296880&theme=light&t=1793275389923"></a>
+</p>
+
+<p align="center">
   <a href="https://ebb.serveka.com"><b>Website</b></a> ·
   <a href="https://ebb.serveka.com/docs/"><b>Docs</b></a> ·
   <a href="#install"><b>Install</b></a> ·
@@ -251,6 +255,11 @@ app/                 the menu bar app (SwiftUI), its own Swift package
 landing/             ebb.serveka.com and install.sh
 docs/                architecture, categories, rules
 ```
+
+## Support Ebb
+
+Ebb is free and stays free. If it saved you some space, telling us what you think on
+[Product Hunt](https://www.producthunt.com/products/ebb?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-ebb-2) or starring it on GitHub helps other developers find it.
 
 ## Contributing
 
