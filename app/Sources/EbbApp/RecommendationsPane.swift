@@ -35,12 +35,6 @@ struct RecommendationsPane: View {
                 .padding(.top, 28)
                 .padding(.trailing, 28)
         }
-        .confirmationDialog(confirmTitle, isPresented: $confirming) {
-            Button("Move to Trash") { Task { await model.cleanSelection(source: "review") } }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(confirmMessage)
-        }
     }
 
     private var filterBar: some View {
@@ -63,6 +57,13 @@ struct RecommendationsPane: View {
                     HStack {
                         Text(title).font(.headline) + Text(" · \(note)").foregroundStyle(.secondary)
                         Spacer()
+                        let selectable = shown.filter(Selection.isSelectable)
+                        let allTicked = !selectable.isEmpty && selectable.allSatisfy(model.selection.contains)
+                        Button(allTicked ? "Select none" : "Select all") {
+                            model.selection.set(selectable, selected: !allTicked)
+                        }
+                        .buttonStyle(.link)
+                        .disabled(selectable.isEmpty)
                         SizeText(bytes: shown.reduce(0) { $0 + $1.allocatedBytes })
                             .foregroundStyle(Theme.accent)
                     }
@@ -75,19 +76,6 @@ struct RecommendationsPane: View {
                 }
             }
         }
-    }
-
-    private var confirmMessage: String {
-        let commands = model.selectedToolCommands
-        let base = "Each item is checked again first and moved to the Trash; put anything back from History."
-        guard !commands.isEmpty else { return base }
-        return base + " Ebb will also run " + commands.joined(separator: ", ")
-            + ", which can't be put back (the tool downloads it again when needed)."
-    }
-
-    private var confirmTitle: String {
-        let totals = model.selectionTotals
-        return "Move \(totals.count) item\(totals.count == 1 ? "" : "s") (\(ByteCount.format(totals.bytes))) to the Trash?"
     }
 }
 
@@ -108,9 +96,20 @@ private struct ItemRow: View {
                 (Text(presentation.title).fontWeight(.medium)
                     + Text(presentation.context.map { " in \($0)" } ?? "").foregroundColor(.secondary))
                 if !presentation.path.isEmpty {
-                    Text(presentation.path).font(.caption.monospaced()).foregroundStyle(.secondary)
-                        .lineLimit(1).truncationMode(.middle)
-                        .textSelection(.enabled)
+                    HStack(spacing: 6) {
+                        Text(presentation.path).font(.caption.monospaced()).foregroundStyle(.secondary)
+                            .lineLimit(1).truncationMode(.middle)
+                            .textSelection(.enabled)
+                        Button {
+                            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item.path)])
+                        } label: {
+                            Image(systemName: "arrow.up.forward.square")
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.caption)
+                        .foregroundStyle(Theme.accent)
+                        .help("Show in Finder")
+                    }
                 }
                 Text(item.reason).font(.caption)
                 if case .yes(let howTo) = item.comesBack {
@@ -140,6 +139,11 @@ private struct ItemRow: View {
             if item.isTrashable {
                 Button("Always keep this item") { model.alwaysKeep(item.path) }
                 Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item.path)]) }
+                Button("Open") { NSWorkspace.shared.open(URL(fileURLWithPath: item.path)) }
+                Button("Copy Path") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(item.path, forType: .string)
+                }
             }
         }
     }
@@ -164,13 +168,34 @@ private struct SelectionPanel: View {
                 breakdown("Re-download", totals.redownload, .gray)
                 breakdown("Gone for good", totals.goneForGood, Theme.warning)
             }
-            Button(model.isCleaning ? "Moving…" : "Move \(ByteCount.format(totals.bytes)) to Trash") {
-                confirming = true
+            if confirming {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Move \(totals.count) item\(totals.count == 1 ? "" : "s") to the Trash?").font(.callout.weight(.semibold))
+                    Text(confirmDetail).font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack {
+                        Button("Cancel") { confirming = false }
+                            .buttonStyle(SecondaryButtonStyle(compact: true))
+                            .keyboardShortcut(.cancelAction)
+                        Button("Move to Trash") {
+                            confirming = false
+                            Task { await model.cleanSelection(source: "review") }
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .keyboardShortcut(.defaultAction)
+                    }
+                }
+                .padding(12)
+                .background(Theme.accentWash, in: RoundedRectangle(cornerRadius: 10))
+            } else {
+                Button(model.isCleaning ? "Moving…" : "Move \(ByteCount.format(totals.bytes)) to Trash") {
+                    confirming = true
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(totals.count == 0 || model.isCleaning || model.isScanning)
+                Text("Goes to Trash, not deleted. Put back any item from History.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
-            .buttonStyle(PrimaryButtonStyle())
-            .disabled(totals.count == 0 || model.isCleaning || model.isScanning)
-            Text("Goes to Trash, not deleted. Put back any item from History.")
-                .font(.caption).foregroundStyle(.secondary)
             if let result = model.result, !result.activeProjects.isEmpty {
                 Divider()
                 HStack(alignment: .top, spacing: 8) {
@@ -184,6 +209,13 @@ private struct SelectionPanel: View {
         }
         .padding(18)
         .background(Theme.subtle, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var confirmDetail: String {
+        let commands = model.selectedToolCommands
+        let base = "Each item is checked again first. Put anything back from History."
+        guard !commands.isEmpty else { return base }
+        return base + " Also runs " + commands.joined(separator: ", ") + ", which can't be put back."
     }
 
     private func breakdown(_ label: String, _ bytes: Int64, _ color: Color) -> some View {
