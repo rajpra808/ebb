@@ -182,29 +182,51 @@ struct HistoryPane: View {
     }
 }
 
-/// "Empty Ebb's items" with a confirmation, since it can't be undone.
+/// "Empty Ebb's items", confirmed in place: the button turns into a short
+/// question with Cancel and Empty, because removing for good can't be undone.
 struct EmptyTrashButton: View {
     @Environment(AppModel.self) private var model
     var compact = false
     @State private var confirming = false
 
     var body: some View {
-        Button {
-            confirming = true
-        } label: {
-            Label(compact ? "Empty" : "Empty Ebb's items", systemImage: "trash.slash")
+        if confirming {
+            HStack(spacing: 8) {
+                Text("Remove for good?").font(compact ? .caption.weight(.semibold) : .callout.weight(.semibold))
+                Button("Cancel") { confirming = false }
+                    .buttonStyle(SecondaryButtonStyle(compact: true))
+                Button("Empty") {
+                    confirming = false
+                    model.emptyEbbTrash()
+                }
+                .buttonStyle(DangerButtonStyle())
+            }
+        } else {
+            Button {
+                confirming = true
+            } label: {
+                Label(compact ? "Empty" : "Empty Ebb's items", systemImage: "trash.slash")
+            }
+            .buttonStyle(SecondaryButtonStyle(compact: compact))
+            .disabled(model.bytesInTrash == 0)
+            .help("Removes only what Ebb moved to the Trash. Your own files there stay. Can't be undone.")
         }
-        .buttonStyle(SecondaryButtonStyle(compact: compact))
-        .disabled(model.bytesInTrash == 0)
-        .confirmationDialog(
-            "Remove \(ByteCount.format(model.bytesInTrash)) from the Trash for good?",
-            isPresented: $confirming
-        ) {
-            Button("Empty Ebb's items", role: .destructive) { model.emptyEbbTrash() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Only what Ebb moved there is removed; anything else in your Trash stays. This can't be undone, and these items can't be put back afterwards.")
+    }
+}
+
+/// The menu bar's Trash line, with its Empty button.
+struct EmptyTrashRow: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "trash").foregroundStyle(.secondary)
+            Text("\(ByteCount.format(model.bytesInTrash)) from Ebb is in the Trash")
+                .foregroundStyle(.secondary).lineLimit(1)
+            Spacer()
+            EmptyTrashButton(compact: true)
         }
+        .font(.caption)
     }
 }
 

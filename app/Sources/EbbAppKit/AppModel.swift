@@ -61,6 +61,16 @@ public final class AppModel {
     }
 
     public var safeToClearBytes: Int64 { result?.totals.safeToClearBytes ?? 0 }
+
+    /// Pre-selected items that one press of Move to Trash handles.
+    public var trashableBytes: Int64 {
+        (result?.items ?? []).filter { $0.preselected && $0.isTrashable }.reduce(0) { $0 + $1.allocatedBytes }
+    }
+
+    /// Pre-selected items that need a tool's own command instead.
+    public var toolCommandBytes: Int64 {
+        (result?.items ?? []).filter { $0.preselected && !$0.isTrashable }.reduce(0) { $0 + $1.allocatedBytes }
+    }
     public var worthALookBytes: Int64 { result?.totals.worthALookBytes ?? 0 }
 
     /// Pre-selected bytes that need a command (pnpm store, Go modules,

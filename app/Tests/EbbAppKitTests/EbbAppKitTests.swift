@@ -126,6 +126,16 @@ struct SelectionTests {
         #expect(after.totals.safeToClearBytes == 11_000)
     }
 
+    @Test("The menu splits what Move to Trash clears from what needs a tool command")
+    func splitByKind() {
+        let trash = CategorySummary.safeToClear(in: result, which: .trash)
+        let tools = CategorySummary.safeToClear(in: result, which: .toolCommand)
+        #expect(trash.map(\.id) == ["node-leftovers", "python-venvs"])
+        #expect(tools.map(\.id) == ["package-caches"])
+        #expect(tools.first?.commands == ["ollama rm llama3"])
+        #expect(trash.allSatisfy { $0.commands.isEmpty })
+    }
+
     @Test("Category summaries are pre-selected only, biggest first")
     func summaries() {
         let rows = CategorySummary.safeToClear(in: result)

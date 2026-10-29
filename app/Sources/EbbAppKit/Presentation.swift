@@ -61,11 +61,17 @@ public struct CategorySummary: Equatable, Sendable, Identifiable {
     public let bytes: Int64
     public let badge: ItemPresentation.Badge
     public let isEstimated: Bool
+    /// The tool commands that clear these items, when they can't go to the
+    /// Trash (e.g. `go clean -modcache`). Empty for Trash items.
+    public var commands: [String] = []
 
     /// Pre-selected categories, biggest first, as the menu bar shows them.
-    public static func safeToClear(in result: ScanResult) -> [CategorySummary] {
+    /// `which` narrows it to items the Move to Trash button handles, or to
+    /// the ones that need a tool's command.
+    public static func safeToClear(in result: ScanResult, which: Kind = .all) -> [CategorySummary] {
         let categories = Dictionary(result.categories.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        let grouped = Dictionary(grouping: result.items.filter(\.preselected), by: \.categoryID)
+        let items = result.items.filter { $0.preselected && which.includes($0) }
+        let grouped = Dictionary(grouping: items, by: \.categoryID)
         return grouped.compactMap { id, items -> CategorySummary? in
             guard let category = categories[id] else { return nil }
             return CategorySummary(
@@ -74,10 +80,23 @@ public struct CategorySummary: Equatable, Sendable, Identifiable {
                 detail: detail(for: id, items: items),
                 bytes: items.reduce(0) { $0 + $1.allocatedBytes },
                 badge: ItemPresentation.Badge(category.comesBack),
-                isEstimated: items.contains(where: \.isEstimated)
+                isEstimated: items.contains(where: \.isEstimated),
+                commands: Array(Set(items.compactMap(\.clearCommand))).sorted()
             )
         }
         .sorted { $0.bytes > $1.bytes }
+    }
+
+    public enum Kind: Sendable {
+        case all, trash, toolCommand
+
+        func includes(_ item: Item) -> Bool {
+            switch self {
+            case .all: return true
+            case .trash: return item.isTrashable
+            case .toolCommand: return !item.isTrashable
+            }
+        }
     }
 
     static func detail(for categoryID: String, items: [Item]) -> String {

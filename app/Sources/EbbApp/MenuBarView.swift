@@ -2,13 +2,16 @@ import EbbAppKit
 import ScanCore
 import SwiftUI
 
-/// The popover under the menu bar item: the total, the top categories and
-/// the two buttons.
+/// The popover under the menu bar item: what one click clears, the top
+/// categories, and the actions.
+///
+/// Confirmations happen inside the panel. A separate dialog would close
+/// the panel when clicked, then reopen with the dialog still showing.
 struct MenuBarView: View {
     @Environment(AppModel.self) private var model
     @Environment(Navigation.self) private var navigation
     @Environment(\.openWindow) private var openWindow
-    @State private var confirming = false
+    @State private var confirmingMove = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -21,7 +24,7 @@ struct MenuBarView: View {
                 categories(result)
                 skippedNote(result)
                 Divider()
-                actions
+                if confirmingMove { confirmMove } else { actions }
             } else {
                 Text("No scan yet. Press Scan now to see what can go.")
                     .foregroundStyle(.secondary)
@@ -32,14 +35,14 @@ struct MenuBarView: View {
         }
         .frame(width: 420)
         // The Trash may have been emptied in Finder since; keep the total honest.
-        .onAppear { model.reloadHistory() }
-        .confirmationDialog(confirmTitle, isPresented: $confirming) {
-            Button("Move to Trash") { Task { await model.cleanSelection(source: "menu bar") } }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(confirmMessage)
+        .onAppear {
+            model.reloadHistory()
+            confirmingMove = false
         }
+        .animation(.easeOut(duration: 0.15), value: confirmingMove)
     }
+
+    // MARK: Header
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -48,18 +51,25 @@ struct MenuBarView: View {
                 Spacer()
                 Text(statusLine).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
+            // The big number is what the button below clears in one click.
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                SizeText(bytes: model.safeToClearBytes, font: .system(size: 32, weight: .bold))
-                Text("can be cleared safely").foregroundStyle(.secondary)
+                SizeText(bytes: model.trashableBytes, font: .system(size: 32, weight: .bold))
+                Text("ready to clear").foregroundStyle(.secondary)
             }
-            StackedBar(parts: model.result.map { CategorySummary.safeToClear(in: $0).map(\.bytes) } ?? [])
-            if model.commandOnlyBytes > 0 {
-                Text("\(ByteCount.format(model.commandOnlyBytes)) of it is cleared with a command such as `go clean -modcache`, not moved to Trash. See Review.")
+            StackedBar(parts: model.result.map { CategorySummary.safeToClear(in: $0, which: .trash).map(\.bytes) } ?? [])
+            if model.toolCommandBytes > 0 {
+                Text("+ \(ByteCount.format(model.toolCommandBytes)) more via tool commands, shown faded below")
                     .font(.caption).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             if let notice = model.notice {
-                Text(notice).font(.caption).foregroundStyle(Theme.accent)
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.accent)
+                    Text(notice).font(.caption).foregroundStyle(Theme.accent)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    Button { model.dismissNotice() } label: { Image(systemName: "xmark") }
+                        .buttonStyle(.borderless).font(.caption2).foregroundStyle(.secondary)
+                }
             }
         }
         .padding(16)
@@ -71,24 +81,17 @@ struct MenuBarView: View {
         return "Scanned " + DateText.describe(result.startedAt)
     }
 
+    // MARK: Categories
+
     private func categories(_ result: ScanResult) -> some View {
-        VStack(spacing: 0) {
-            ForEach(Array(CategorySummary.safeToClear(in: result).prefix(4).enumerated()), id: \.element.id) { index, row in
-                HStack(spacing: 10) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Theme.segments[min(index, Theme.segments.count - 1)])
-                        .frame(width: 8, height: 8)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(row.title).font(.body.weight(.medium))
-                        Text(row.detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                    }
-                    Spacer()
-                    BadgeView(badge: row.badge)
-                    SizeText(bytes: row.bytes, estimated: row.isEstimated)
-                        .frame(minWidth: 64, alignment: .trailing)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+        let trash = CategorySummary.safeToClear(in: result, which: .trash)
+        let tools = CategorySummary.safeToClear(in: result, which: .toolCommand)
+        return VStack(spacing: 0) {
+            ForEach(Array(trash.prefix(4).enumerated()), id: \.element.id) { index, row in
+                CategoryRow(row: row, color: Theme.segments[min(index, Theme.segments.count - 1)])
+            }
+            ForEach(tools.prefix(2)) { row in
+                ToolCommandRow(row: row)
             }
         }
         .padding(.vertical, 4)
@@ -106,6 +109,8 @@ struct MenuBarView: View {
         .background(Theme.subtle)
     }
 
+    // MARK: Actions
+
     private var actions: some View {
         HStack(spacing: 10) {
             Button("Review") {
@@ -113,15 +118,50 @@ struct MenuBarView: View {
             }
             .buttonStyle(SecondaryButtonStyle())
             Button {
-                confirming = true
+                confirmingMove = true
             } label: {
-                Text(model.isCleaning ? "Moving…" : "Move \(ByteCount.format(model.selectionTotals.bytes)) to Trash")
+                Text(model.isCleaning ? "Moving…"
+                     : model.selectionTotals.count == 0 ? "Nothing to move right now"
+                     : "Move \(ByteCount.format(model.selectionTotals.bytes)) to Trash")
             }
             .buttonStyle(PrimaryButtonStyle())
             .disabled(model.selectionTotals.count == 0 || model.isCleaning || model.isScanning)
         }
         .padding(16)
     }
+
+    /// The confirmation, in place of the buttons.
+    private var confirmMove: some View {
+        let totals = model.selectionTotals
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Move \(totals.count) item\(totals.count == 1 ? "" : "s") (\(ByteCount.format(totals.bytes))) to the Trash?")
+                .font(.headline)
+            Text(confirmDetail).font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 10) {
+                Button("Cancel") { confirmingMove = false }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .keyboardShortcut(.cancelAction)
+                Button("Move to Trash") {
+                    confirmingMove = false
+                    Task { await model.cleanSelection(source: "menu bar") }
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+        .background(Theme.accentWash.opacity(0.5))
+    }
+
+    private var confirmDetail: String {
+        let commands = model.selectedToolCommands
+        let base = "Each item is checked again first. Put anything back from History."
+        guard !commands.isEmpty else { return base }
+        return base + " Also runs " + commands.joined(separator: ", ") + ", which can't be put back."
+    }
+
+    // MARK: Footer
 
     /// Always shown, scanning or not: scan, open the window, pause, quit,
     /// and what's waiting in the Trash.
@@ -145,14 +185,7 @@ struct MenuBarView: View {
                 pauseMenu
             }
             if model.bytesInTrash > 0 && !model.isScanning {
-                HStack(spacing: 8) {
-                    Image(systemName: "trash").foregroundStyle(.secondary)
-                    Text("\(ByteCount.format(model.bytesInTrash)) from Ebb is waiting in the Trash")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    EmptyTrashButton(compact: true)
-                }
-                .font(.caption)
+                EmptyTrashRow()
             }
             HStack {
                 if let paused = model.pauseDescription {
@@ -189,17 +222,67 @@ struct MenuBarView: View {
         .fixedSize()
         .help(model.pauseDescription == nil ? "Pause daily scans" : "Resume daily scans")
     }
+}
 
-    private var confirmMessage: String {
-        let commands = model.selectedToolCommands
-        let base = "Each item is checked again first and moved to the Trash; put anything back from History."
-        guard !commands.isEmpty else { return base }
-        return base + " Ebb will also run " + commands.joined(separator: ", ")
-            + ", which can't be put back (the tool downloads it again when needed)."
+/// A category that Move to Trash clears.
+private struct CategoryRow: View {
+    let row: CategorySummary
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 8, height: 8)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(row.title).font(.body.weight(.medium))
+                Text(row.detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer()
+            BadgeView(badge: row.badge)
+            SizeText(bytes: row.bytes, estimated: row.isEstimated).frame(minWidth: 64, alignment: .trailing)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
     }
+}
 
-    private var confirmTitle: String {
-        let totals = model.selectionTotals
-        return "Move \(totals.count) item\(totals.count == 1 ? "" : "s") (\(ByteCount.format(totals.bytes))) to the Trash?"
+/// A category cleared by a tool's own command: faded, and on hover it says
+/// what runs and why it isn't part of the button above.
+private struct ToolCommandRow: View {
+    let row: CategorySummary
+    @State private var hovering = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Image(systemName: "terminal").font(.caption).frame(width: 8)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(row.title).font(.body.weight(.medium))
+                    Text(hovering ? "Needs a tool command · hover for details" : row.detail)
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Spacer()
+                SizeText(bytes: row.bytes, estimated: row.isEstimated).frame(minWidth: 64, alignment: .trailing)
+            }
+            if hovering {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(row.commands, id: \.self) { command in
+                        Text(command).font(.caption.monospaced())
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Theme.subtle, in: RoundedRectangle(cornerRadius: 4))
+                            .textSelection(.enabled)
+                    }
+                    Text("These files can't go to the Trash, so they aren't in the button above. Tick them in Review and Ebb runs the command, or run it yourself. It can't be put back; the tool downloads it again when needed.")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.leading, 18)
+            }
+        }
+        .opacity(hovering ? 1 : 0.55)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.15), value: hovering)
     }
 }

@@ -165,3 +165,15 @@ struct SecondaryButtonStyle: ButtonStyle {
                         in: RoundedRectangle(cornerRadius: 9))
     }
 }
+
+/// For actions that can't be undone.
+struct DangerButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.callout.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Theme.warning.opacity(configuration.isPressed ? 0.8 : 1), in: RoundedRectangle(cornerRadius: 9))
+    }
+}
