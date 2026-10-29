@@ -12,7 +12,7 @@
 set -eu
 
 cd "$(dirname "$0")/.."
-version=${EBB_VERSION:-0.2.8}
+version=${EBB_VERSION:-0.2.9}
 build=build
 bundle="$build/Ebb.app"
 
