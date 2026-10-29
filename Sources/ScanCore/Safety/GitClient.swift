@@ -27,14 +27,31 @@ public struct GitClient: Sendable {
         }
         #if os(macOS)
         if git == "/usr/bin/git" {
-            let check = Subprocess.runBlocking("/usr/bin/xcode-select", arguments: ["-p"], timeout: 5)
-            guard check?.status == 0 else { return GitClient(executable: nil) }
+            // /usr/bin/git only forwards to the developer tools' git. Check
+            // that one exists, by reading the active developer folder, rather
+            // than running xcode-select, which can be slow under load.
+            guard let developer = activeDeveloperDirectory(),
+                  FileManager.default.isExecutableFile(atPath: developer + "/usr/bin/git")
+            else { return GitClient(executable: nil) }
         }
         #endif
         return GitClient(executable: git)
     }
 
     public var isAvailable: Bool { executable != nil }
+
+    /// `DEVELOPER_DIR`, or the folder `xcode-select` points at.
+    static func activeDeveloperDirectory() -> String? {
+        if let fromEnvironment = ProcessInfo.processInfo.environment["DEVELOPER_DIR"], !fromEnvironment.isEmpty {
+            return fromEnvironment
+        }
+        for link in ["/var/db/xcode_select_link", "/usr/share/xcode-select/xcode_dir_link"] {
+            if let target = try? FileManager.default.destinationOfSymbolicLink(atPath: link) { return target }
+        }
+        // Without a selection, macOS falls back to the Command Line Tools.
+        let tools = "/Library/Developer/CommandLineTools"
+        return FileManager.default.fileExists(atPath: tools) ? tools : nil
+    }
 
     /// Which of `candidates` (paths relative to `root`) contain at least one
     /// file tracked by git. Returns `nil` when git can't answer, which callers
