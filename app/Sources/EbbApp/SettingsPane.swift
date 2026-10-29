@@ -338,8 +338,11 @@ private struct AboutSection: View {
 }
 
 /// Where people can support the project. Shown only here and in the README,
-/// never in the menu bar or notifications. Filled in once the
-/// accounts exist.
+/// never in the menu bar or notifications.
 enum SupportLinks {
-    static let all: [(title: String, url: URL)] = []
+    static let all: [(title: String, url: URL)] = [
+        ("Review on Product Hunt", "https://www.producthunt.com/products/ebb?utm_source=app&utm_medium=about"),
+        ("Star on GitHub", "https://github.com/rajpra808/ebb"),
+        ("Report an issue", "https://github.com/rajpra808/ebb/issues"),
+    ].compactMap { title, address in URL(string: address).map { (title, $0) } }
 }
