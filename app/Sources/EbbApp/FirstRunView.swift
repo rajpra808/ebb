@@ -81,7 +81,7 @@ struct FirstRunView: View {
                 appIcon
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Your Mac's daily cleanup agent").font(.system(size: 24, weight: .bold))
-                    Text("Ebb finds space that's safe to clear: old build folders, caches, installers and more. It knows what you're working on and never suggests anything in an active project.")
+                    Text("Ebb finds space that's safe to clear: old build folders, caches, installers and more. It knows what you're working on and never suggests anything in an active project. Next, macOS asks once for notifications and to open Ebb at login, then for disk access, so nothing interrupts you later.")
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -89,7 +89,12 @@ struct FirstRunView: View {
             promises
             HStack {
                 Spacer()
-                Button("Continue") { step = hasAccess ? .firstScan : .diskAccess }
+                Button("Continue") {
+                    Task {
+                        await askForEverything()
+                        step = hasAccess ? .firstScan : .diskAccess
+                    }
+                }
                     .buttonStyle(PrimaryButtonStyle()).fixedSize()
             }
         }
@@ -193,18 +198,22 @@ struct FirstRunView: View {
             }
         }
         .task {
-            // Daily scans and opening at login are on unless the user unticks
-            // them below.
-            if !model.settings.completedFirstRun {
-                opensAtLogin = LoginItem.set(true)
-                if !model.settings.agent.isEnabled, let executable = Bundle.main.executablePath {
-                    model.setAgentEnabled(true, executable: executable)
-                    _ = await SystemNotifier.requestPermission()
-                }
-            }
             if model.result == nil || !Calendar.current.isDateInToday(model.result?.startedAt ?? .distantPast) {
                 await model.scan()
             }
+        }
+    }
+
+    /// Every question macOS will ask, at once, right after install, so
+    /// nothing pops up days later: notifications, the login item and the
+    /// daily agent. Full Disk Access is the next step. Each can be turned
+    /// off on the last screen or in Settings.
+    private func askForEverything() async {
+        guard !model.settings.completedFirstRun else { return }
+        _ = await SystemNotifier.requestPermission()
+        opensAtLogin = LoginItem.set(true)
+        if !model.settings.agent.isEnabled, let executable = Bundle.main.executablePath {
+            model.setAgentEnabled(true, executable: executable)
         }
     }
 
