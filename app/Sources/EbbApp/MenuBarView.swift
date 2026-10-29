@@ -257,7 +257,7 @@ private struct ToolCommandRow: View {
                 Image(systemName: "terminal").font(.caption).frame(width: 8)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(row.title).font(.body.weight(.medium))
-                    Text(hovering ? "Needs a tool command · hover for details" : row.detail)
+                    Text(hovering ? "Needs a tool command" : row.detail + " · hover for details")
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer()

@@ -200,7 +200,12 @@ struct RuleEditor: View {
             action: neverTouch ? .neverTouch : .suggest,
             comesBack: comesBack == "redownload" ? .redownload : .no
         )
-        return (try? rule.validate()) == nil ? rule : nil
+        do {
+            try rule.validate()
+            return rule
+        } catch {
+            return nil
+        }
     }
 
     private var cliEquivalent: String {
